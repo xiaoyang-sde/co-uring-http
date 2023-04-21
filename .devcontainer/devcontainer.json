@@ -1,0 +1,7 @@
+{
+	"name": "C++",
+	"build": {
+		"dockerfile": "Dockerfile"
+	},
+	"runArgs": ["--name", "co_uring_http"]
+}
