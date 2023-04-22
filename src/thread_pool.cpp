@@ -37,6 +37,8 @@ auto co_uring_http::thread_pool::thread_loop() -> void {
 
     const std::coroutine_handle<> coroutine_handle = coroutine_queue.front();
     coroutine_queue.pop();
+    lock.unlock();
+
     coroutine_handle.resume();
   }
 }
