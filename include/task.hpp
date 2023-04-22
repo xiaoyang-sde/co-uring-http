@@ -3,25 +3,64 @@
 
 #include <coroutine>
 #include <optional>
+#include <type_traits>
 
 namespace co_uring_http {
-template <typename T> class task_promise;
+template <typename T> class task;
+
+template <typename T> class task_promise_base {
+public:
+  auto return_value(T &&value) noexcept -> void { return; };
+};
+
+template <> class task_promise_base<void> {
+public:
+  auto return_void() noexcept -> void { return; };
+};
+
+template <typename T> class task_promise : public task_promise_base<T> {
+public:
+  class final_awaitable {
+  public:
+    constexpr auto await_ready() const noexcept -> bool { return false; };
+    constexpr auto await_resume() const noexcept -> void { return; };
+    auto await_suspend(std::coroutine_handle<task_promise<T>> coroutine)
+        const noexcept -> std::coroutine_handle<> {
+      return coroutine.promise().calling_coroutine;
+    };
+  };
+
+  auto get_return_object() noexcept -> task<T> {
+    return task<T>{std::coroutine_handle<task_promise<T>>::from_promise(*this)};
+  };
+  auto initial_suspend() noexcept -> std::suspend_always { return {}; };
+  auto final_suspend() noexcept -> final_awaitable { return {}; };
+  auto unhandled_exception() -> void { return; };
+
+  auto set_calling_coroutine(std::coroutine_handle<> calling_coroutine) {
+    calling_coroutine = calling_coroutine;
+  }
+
+private:
+  std::coroutine_handle<> calling_coroutine = std::noop_coroutine();
+};
 
 template <typename T = void> class [[nodiscard]] task {
 public:
   using promise_type = task_promise<T>;
 
-  explicit task(std::coroutine_handle<task_promise<T>> handle) noexcept
-      : handle(handle){};
+  explicit task(
+      std::coroutine_handle<task_promise<T>> coroutine_handle) noexcept
+      : coroutine(coroutine_handle){};
 
   ~task() noexcept {
-    if (handle.has_value()) {
-      handle.value().destroy();
+    if (coroutine) {
+      coroutine.destroy();
     }
   };
 
-  task(task &&other) noexcept : handle(other.handle) {
-    other.handle = std::nullopt;
+  task(task &&other) noexcept : coroutine(other.coroutine) {
+    other.coroutine = nullptr;
   };
 
   auto operator=(task &&other) noexcept -> task & {
@@ -29,10 +68,10 @@ public:
       return *this;
     }
 
-    if (handle.has_value()) {
-      handle.value().destroy();
+    if (coroutine) {
+      coroutine.destroy();
     }
-    handle = std::exchange(other.handle, nullptr);
+    coroutine = std::exchange(other.coroutine, nullptr);
     return *this;
   };
 
@@ -40,30 +79,24 @@ public:
 
   auto operator=(const task &other) -> task & = delete;
 
+  class task_awaitable {
+  public:
+    constexpr auto await_ready() const noexcept -> bool { return false; };
+    constexpr auto await_resume() const noexcept -> void { return; };
+    auto await_suspend(std::coroutine_handle<task_promise<T>> calling_coroutine)
+        const noexcept -> std::coroutine_handle<> {
+      coroutine.promise().set_calling_coroutine(calling_coroutine);
+      return coroutine;
+    };
+
+  private:
+    std::coroutine_handle<task_promise<T>> coroutine;
+  };
+
+  auto operator co_await() noexcept -> task_awaitable { return {}; }
+
 private:
-  std::optional<std::coroutine_handle<task_promise<T>>> handle;
-};
-
-template <typename T> class task_promise {
-public:
-  auto get_return_object() noexcept -> task<T> {
-    return task<T>{std::coroutine_handle<task_promise<T>>::from_promise(*this)};
-  };
-  auto initial_suspend() noexcept -> std::suspend_never { return {}; };
-  auto final_suspend() noexcept -> std::suspend_never { return {}; };
-  auto return_value(T &&value) noexcept -> void { return; };
-  auto unhandled_exception() -> void { return; };
-};
-
-template <> class task_promise<void> {
-public:
-  auto get_return_object() noexcept -> task<void> {
-    return task{std::coroutine_handle<task_promise>::from_promise(*this)};
-  };
-  auto initial_suspend() noexcept -> std::suspend_never { return {}; };
-  auto final_suspend() noexcept -> std::suspend_never { return {}; };
-  auto return_void() noexcept -> void { return; };
-  auto unhandled_exception() -> void { return; };
+  std::coroutine_handle<task_promise<T>> coroutine;
 };
 } // namespace co_uring_http
 
