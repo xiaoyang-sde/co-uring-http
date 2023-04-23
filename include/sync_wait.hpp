@@ -13,14 +13,9 @@ public:
   using promise_type = sync_wait_task_promise;
 
   explicit sync_wait_task(
-      std::coroutine_handle<sync_wait_task_promise> coroutine_handle) noexcept
-      : coroutine(coroutine_handle){};
+      std::coroutine_handle<sync_wait_task_promise> coroutine_handle) noexcept;
 
-  ~sync_wait_task() {
-    if (coroutine) {
-      coroutine.destroy();
-    }
-  }
+  ~sync_wait_task();
 
   auto wait() const noexcept -> void;
 
@@ -30,38 +25,32 @@ private:
 
 class sync_wait_task_promise {
 public:
-  auto get_return_object() noexcept -> sync_wait_task {
-    return sync_wait_task{
-        std::coroutine_handle<sync_wait_task_promise>::from_promise(*this)};
-  };
+  auto get_return_object() noexcept -> sync_wait_task;
 
-  auto initial_suspend() const noexcept -> std::suspend_never { return {}; }
+  auto initial_suspend() const noexcept -> std::suspend_never;
 
   class final_awaitable {
   public:
-    constexpr auto await_ready() const noexcept -> bool { return false; };
+    constexpr auto await_ready() const noexcept -> bool { return false; }
 
-    constexpr auto await_resume() const noexcept -> void { return; };
+    constexpr auto await_resume() const noexcept -> void { return; }
 
     auto await_suspend(std::coroutine_handle<sync_wait_task_promise> coroutine)
-        const noexcept -> void {
-      std::atomic_flag &atomic_flag = coroutine.promise().atomic_flag;
-      atomic_flag.test_and_set();
-      atomic_flag.notify_all();
-    };
+        const noexcept -> void;
   };
 
-  auto final_suspend() const noexcept -> final_awaitable { return {}; }
+  auto final_suspend() const noexcept -> final_awaitable;
 
-  auto unhandled_exception() const noexcept -> void { std::terminate(); }
+  auto unhandled_exception() const noexcept -> void;
 
-  auto wait() const noexcept -> void { atomic_flag.wait(false); }
+  auto get_atomic_flag() noexcept -> std::atomic_flag &;
 
 private:
   std::atomic_flag atomic_flag;
 };
 
-template <typename T> auto build_sync_wait_task(task<T> &task) -> sync_wait_task {
+template <typename T>
+auto build_sync_wait_task(task<T> &task) -> sync_wait_task {
   co_await task;
 }
 
