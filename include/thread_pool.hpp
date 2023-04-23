@@ -1,5 +1,5 @@
-#ifndef THREADPOOL_HPP
-#define THREADPOOL_HPP
+#ifndef THREAD_POOL_HPP
+#define THREAD_POOL_HPP
 
 #include <condition_variable>
 #include <coroutine>
