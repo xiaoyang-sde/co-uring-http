@@ -13,12 +13,12 @@ target_include_directories(co_uring_http
   PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
-file(GLOB SOURCES "src/*.cpp")
+file(GLOB SOURCES src/*.cpp)
 target_sources(co_uring_http PRIVATE ${SOURCES})
 
-file(GLOB EXAMPLES_SOURCES examples/*.cpp)
-foreach(examples_src ${EXAMPLES_SOURCES})
-  get_filename_component(examples_name ${examples_src} NAME_WE)
-  add_executable(${examples_name} ${examples_src})
-  target_link_libraries(${examples_name} PRIVATE co_uring_http)
+file(GLOB BINARIES_SOURCES bin/*.cpp)
+foreach(file_source ${BINARIES_SOURCES})
+  get_filename_component(file_name ${file_source} NAME_WE)
+  add_executable(${file_name} ${file_source})
+  target_link_libraries(${file_name} PRIVATE co_uring_http)
 endforeach()
