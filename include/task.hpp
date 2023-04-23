@@ -102,8 +102,8 @@ public:
     return task<T>{std::coroutine_handle<task_promise<T>>::from_promise(*this)};
   };
 
-  auto return_value(T &&value) noexcept -> void {
-    value = std::forward<T>(value);
+  auto return_value(T &&return_value) noexcept -> void {
+    value = std::forward<T>(return_value);
   };
 
   constexpr auto get_value() const noexcept -> T { return value; }
