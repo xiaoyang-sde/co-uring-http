@@ -14,17 +14,17 @@ public:
 
   explicit task(
       std::coroutine_handle<task_promise<T>> coroutine_handle) noexcept
-      : coroutine(coroutine_handle){};
+      : coroutine(coroutine_handle) {}
 
   ~task() noexcept {
     if (coroutine) {
       coroutine.destroy();
     }
-  };
+  }
 
   task(task &&other) noexcept : coroutine(other.coroutine) {
     other.coroutine = nullptr;
-  };
+  }
 
   auto operator=(task &&other) noexcept -> task & {
     if (this == std::addressof(other)) {
@@ -36,7 +36,7 @@ public:
     }
     coroutine = std::exchange(other.coroutine, nullptr);
     return *this;
-  };
+  }
 
   task(const task &other) = delete;
 
@@ -44,29 +44,30 @@ public:
 
   class task_awaitable {
   public:
-    task_awaitable(std::coroutine_handle<task_promise<T>> coroutine)
+    explicit task_awaitable(std::coroutine_handle<task_promise<T>> coroutine)
         : coroutine{coroutine} {}
 
-    constexpr auto await_ready() const noexcept -> bool { return false; };
+    constexpr auto await_ready() const noexcept -> bool {
+      return coroutine == nullptr || coroutine.done();
+    }
 
-    template <typename U = T>
-    constexpr auto await_resume() const noexcept -> U {
+    constexpr auto await_resume() const noexcept -> T {
       return coroutine.promise().get_value();
-    };
-
-    template <> constexpr auto await_resume() const noexcept -> void{};
+    }
 
     auto await_suspend(std::coroutine_handle<> calling_coroutine) const noexcept
         -> std::coroutine_handle<> {
       coroutine.promise().set_calling_coroutine(calling_coroutine);
       return coroutine;
-    };
+    }
 
   private:
     std::coroutine_handle<task_promise<T>> coroutine;
   };
 
-  auto operator co_await() noexcept -> task_awaitable { return {coroutine}; }
+  auto operator co_await() noexcept -> task_awaitable {
+    return task_awaitable(coroutine);
+  }
 
 private:
   std::coroutine_handle<task_promise<T>> coroutine;
@@ -76,17 +77,17 @@ template <typename T> class task_promise_base {
 public:
   class final_awaitable {
   public:
-    constexpr auto await_ready() const noexcept -> bool { return false; };
-    constexpr auto await_resume() const noexcept -> void { return; };
+    constexpr auto await_ready() const noexcept -> bool { return false; }
+    constexpr auto await_resume() const noexcept -> void { return; }
     auto await_suspend(std::coroutine_handle<task_promise<T>> coroutine)
         const noexcept -> std::coroutine_handle<> {
       return coroutine.promise().calling_coroutine;
-    };
+    }
   };
 
-  auto initial_suspend() noexcept -> std::suspend_always { return {}; };
-  auto final_suspend() noexcept -> final_awaitable { return {}; };
-  auto unhandled_exception() -> void { std::terminate(); };
+  auto initial_suspend() noexcept -> std::suspend_always { return {}; }
+  auto final_suspend() noexcept -> final_awaitable { return {}; }
+  auto unhandled_exception() -> void { std::terminate(); }
 
   auto set_calling_coroutine(std::coroutine_handle<> coroutine) -> void {
     calling_coroutine = coroutine;
@@ -100,11 +101,11 @@ template <typename T> class task_promise final : public task_promise_base<T> {
 public:
   auto get_return_object() noexcept -> task<T> {
     return task<T>{std::coroutine_handle<task_promise<T>>::from_promise(*this)};
-  };
+  }
 
   auto return_value(T &&return_value) noexcept -> void {
     value = std::forward<T>(return_value);
-  };
+  }
 
   constexpr auto get_value() const noexcept -> T { return value; }
 
@@ -117,7 +118,9 @@ public:
   auto get_return_object() noexcept -> task<void> {
     return task<void>{std::coroutine_handle<task_promise>::from_promise(*this)};
   };
-  auto return_void() noexcept -> void{};
+  auto return_void() noexcept -> void {}
+
+  constexpr auto get_value() const noexcept -> void {}
 };
 } // namespace co_uring_http
 

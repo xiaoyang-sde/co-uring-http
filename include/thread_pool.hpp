@@ -18,8 +18,8 @@ public:
   public:
     schedule_awaiter(thread_pool &thread_pool);
 
-    constexpr auto await_ready() const noexcept -> bool { return false; };
-    constexpr auto await_resume() const noexcept -> void { return; };
+    constexpr auto await_ready() const noexcept -> bool { return false; }
+    constexpr auto await_resume() const noexcept -> void { return; }
     auto await_suspend(std::coroutine_handle<> handle) const noexcept -> void;
 
   private:
