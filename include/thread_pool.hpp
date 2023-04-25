@@ -26,6 +26,7 @@ public:
     thread_pool &thread_pool;
   };
 
+  auto size() const noexcept -> size_t;
   auto schedule() -> schedule_awaiter;
 
 private:

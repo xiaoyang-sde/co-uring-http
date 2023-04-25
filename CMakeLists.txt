@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.1)
 
 project(co_uring_http)
 set(CMAKE_CXX_STANDARD 23)
@@ -6,7 +6,16 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 add_library(co_uring_http STATIC)
-target_compile_options(co_uring_http PRIVATE -g -Og -stdlib=libstdc++ -Wall -Werror)
+
+target_link_libraries(co_uring_http PRIVATE asan)
+target_link_libraries(co_uring_http PRIVATE ubsan)
+target_link_libraries(co_uring_http PRIVATE uring)
+
+target_compile_options(
+  co_uring_http PRIVATE
+  -g -Og -stdlib=libstdc++ -Wall -Werror
+  -fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined
+)
 
 target_include_directories(co_uring_http
   PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include

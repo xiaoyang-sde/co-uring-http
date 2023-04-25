@@ -12,6 +12,8 @@ template <typename T = void> class [[nodiscard]] task {
 public:
   using promise_type = task_promise<T>;
 
+  task() noexcept : coroutine(nullptr) {}
+
   explicit task(
       std::coroutine_handle<task_promise<T>> coroutine_handle) noexcept
       : coroutine(coroutine_handle) {}
@@ -34,7 +36,8 @@ public:
     if (coroutine) {
       coroutine.destroy();
     }
-    coroutine = std::exchange(other.coroutine, nullptr);
+    coroutine = other.coroutine;
+    other.coroutine = nullptr;
     return *this;
   }
 
@@ -67,6 +70,13 @@ public:
 
   auto operator co_await() noexcept -> task_awaitable {
     return task_awaitable(coroutine);
+  }
+
+  auto resume() noexcept -> void {
+    if (coroutine == nullptr || coroutine.done()) {
+      return;
+    }
+    coroutine.resume();
   }
 
 private:

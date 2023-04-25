@@ -100,6 +100,13 @@ template <typename T> auto sync_wait(task<T> &task) -> T {
   sync_wait_task_handle.wait();
   return sync_wait_task_handle.get_value();
 }
+
+template <typename T> auto sync_wait(task<T> &&task) -> T {
+  sync_wait_task<T> sync_wait_task_handle =
+      ([&]() -> sync_wait_task<T> { co_return co_await task; })();
+  sync_wait_task_handle.wait();
+  return sync_wait_task_handle.get_value();
+}
 } // namespace co_uring_http
 
 #endif

@@ -3,7 +3,7 @@
 co_uring_http::thread_pool::thread_pool(
     const std::size_t thread_count) noexcept {
   for (size_t _ = 0; _ < thread_count; ++_) {
-    thread_list.emplace_back([this]() { this->thread_loop(); });
+    thread_list.emplace_back([&]() { thread_loop(); });
   }
 };
 
@@ -48,4 +48,8 @@ auto co_uring_http::thread_pool::enqueue(std::coroutine_handle<> handle)
   std::unique_lock lock(mutex);
   coroutine_queue.emplace(handle);
   condition_variable.notify_one();
+}
+
+auto co_uring_http::thread_pool::size() const noexcept -> size_t {
+  return thread_list.size();
 }
