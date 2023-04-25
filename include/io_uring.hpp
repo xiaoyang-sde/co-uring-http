@@ -3,10 +3,7 @@
 
 #include <coroutine>
 #include <functional>
-#include <iostream>
 #include <liburing.h>
-#include <stdexcept>
-#include <vector>
 
 namespace co_uring_http {
 struct sqe_user_data {
@@ -82,7 +79,7 @@ class recv_awaitable {
 public:
   recv_awaitable(io_uring_handler &io_uring_handler, const int fd,
                  std::vector<char> &buffer)
-      : io_uring_handler{io_uring_handler}, fd{fd}, buffer{buffer} {}
+      : fd{fd}, io_uring_handler{io_uring_handler}, buffer{buffer} {}
 
   bool await_ready() { return false; }
   void await_suspend(std::coroutine_handle<>) {
@@ -103,7 +100,7 @@ class send_awaitable {
 public:
   send_awaitable(io_uring_handler &io_uring_handler, const int fd,
                  const std::vector<char> &buffer)
-      : io_uring_handler{io_uring_handler}, fd{fd}, buffer{buffer} {}
+      : fd{fd}, io_uring_handler{io_uring_handler}, buffer{buffer} {}
 
   bool await_ready() { return false; }
   void await_suspend(std::coroutine_handle<>) {
@@ -125,7 +122,7 @@ public:
   accept_awaitable(io_uring_handler &io_uring_handler, const int fd,
                    sockaddr_storage *client_address,
                    socklen_t *client_address_size)
-      : io_uring_handler{io_uring_handler}, fd{fd},
+      : fd{fd}, io_uring_handler{io_uring_handler},
         client_address{client_address},
         client_address_size{client_address_size} {}
 

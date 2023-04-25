@@ -1,8 +1,6 @@
 #ifndef SYNC_WAIT_HPP
 #define SYNC_WAIT_HPP
 
-#include <atomic>
-#include <coroutine>
 #include <task.hpp>
 
 namespace co_uring_http {

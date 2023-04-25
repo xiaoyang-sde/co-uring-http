@@ -2,7 +2,6 @@
 #define TASK_HPP
 
 #include <coroutine>
-#include <exception>
 #include <memory>
 
 namespace co_uring_http {

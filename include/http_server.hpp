@@ -1,16 +1,13 @@
 #ifndef HTTP_SERVER_HPP
 #define HTTP_SERVER_HPP
 
+#include <map>
+
 #include "io_uring.hpp"
 #include "socket.hpp"
 #include "sync_wait.hpp"
 #include "task.hpp"
 #include "thread_pool.hpp"
-#include <coroutine>
-#include <functional>
-#include <iostream>
-#include <map>
-#include <thread>
 
 namespace co_uring_http {
 class thread_worker {
@@ -95,7 +92,7 @@ public:
     };
 
     std::list<task<>> task_list;
-    for (int _ = 0; _ < thread_pool.size(); ++_) {
+    for (size_t _ = 0; _ < thread_pool.size(); ++_) {
       task_list.emplace_back(construct_task());
       task_list.back().resume();
     }

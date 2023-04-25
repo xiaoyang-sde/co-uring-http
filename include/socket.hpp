@@ -1,12 +1,9 @@
 #ifndef SOCKET_HPP
 #define SOCKET_HPP
+
 #include <cstring>
-#include <exception>
-#include <fcntl.h>
 #include <netdb.h>
 #include <stdexcept>
-#include <sys/socket.h>
-#include <sys/types.h>
 #include <unistd.h>
 
 constexpr int LISTEN_QUEUE_SIZE = 512;
@@ -18,7 +15,7 @@ public:
     addrinfo address_hints;
     addrinfo *socket_address;
 
-    memset(&address_hints, 0, sizeof(addrinfo));
+    std::memset(&address_hints, 0, sizeof(addrinfo));
     address_hints.ai_family = AF_UNSPEC;
     address_hints.ai_socktype = SOCK_STREAM;
     address_hints.ai_flags = AI_PASSIVE;
