@@ -1,33 +1,22 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.10)
 
 project(co_uring_http)
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED True)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-add_library(co_uring_http STATIC)
+file(GLOB SOURCE_FILE src/*.cpp)
+add_executable(co_uring_http ${SOURCE_FILE})
 
-target_link_libraries(co_uring_http PRIVATE asan)
-target_link_libraries(co_uring_http PRIVATE ubsan)
-target_link_libraries(co_uring_http PRIVATE uring)
+target_include_directories(co_uring_http PRIVATE include)
+target_compile_options(co_uring_http PRIVATE -stdlib=libstdc++ -Wall -Wextra)
 
-target_compile_options(
-  co_uring_http PRIVATE
-  -g -Og -stdlib=libstdc++ -Wall -Werror
-  -fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined
-)
-
-target_include_directories(co_uring_http
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/include
-  PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src
-)
-
-file(GLOB SOURCES src/*.cpp)
-target_sources(co_uring_http PRIVATE ${SOURCES})
-
-file(GLOB BINARIES_SOURCES bin/*.cpp)
-foreach(file_source ${BINARIES_SOURCES})
-  get_filename_component(file_name ${file_source} NAME_WE)
-  add_executable(${file_name} ${file_source})
-  target_link_libraries(${file_name} PRIVATE co_uring_http)
-endforeach()
+if(CMAKE_BUILD_TYPE STREQUAL "Debug")
+  target_link_libraries(co_uring_http PRIVATE asan ubsan uring)
+  target_compile_options(
+    co_uring_http PRIVATE
+    -fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined
+  )
+else()
+  target_link_libraries(co_uring_http PRIVATE uring)
+endif()
