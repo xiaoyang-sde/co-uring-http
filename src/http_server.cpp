@@ -13,9 +13,9 @@ auto thread_worker::accept_loop() -> task<> {
     sockaddr_storage client_address;
     socklen_t client_address_size = sizeof(client_address);
 
-    const int client_fd =
-        co_await accept_awaitable(io_uring_handler, get_socket_fd(),
-                                  &client_address, &client_address_size);
+    const int client_fd = co_await accept_awaitable(
+        io_uring_handler, get_socket_fd(), &client_address, &client_address_size
+    );
     client_map.insert_or_assign(client_fd, handle_client(client_fd));
     client_map[client_fd].resume();
   }

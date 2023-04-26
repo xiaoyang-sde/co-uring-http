@@ -34,23 +34,28 @@ public:
 
   auto submit_and_wait(const int wait_nr) -> int;
 
-  auto submit_accept_request(int fd, sqe_user_data *sqe_data,
-                             sockaddr *client_addr, socklen_t *client_len)
-      -> void;
+  auto submit_accept_request(
+      int fd, sqe_user_data *sqe_data, sockaddr *client_addr,
+      socklen_t *client_len
+  ) -> void;
 
-  auto submit_recv_request(int fd, sqe_user_data *sqe_data,
-                           std::vector<char> &buffer) -> void;
+  auto submit_recv_request(
+      int fd, sqe_user_data *sqe_data, std::vector<char> &buffer
+  ) -> void;
 
-  auto submit_send_request(int fd, sqe_user_data *sqe_data,
-                           const std::vector<char> &buffer) -> void;
+  auto submit_send_request(
+      int fd, sqe_user_data *sqe_data, const std::vector<char> &buffer
+  ) -> void;
 
   io_uring ring;
 };
 
 class recv_awaitable {
 public:
-  recv_awaitable(io_uring_handler &io_uring_handler, const int fd,
-                 std::vector<char> &buffer);
+  recv_awaitable(
+      io_uring_handler &io_uring_handler, const int fd,
+      std::vector<char> &buffer
+  );
 
   bool await_ready();
   void await_suspend(std::coroutine_handle<>);
@@ -65,8 +70,10 @@ private:
 
 class send_awaitable {
 public:
-  send_awaitable(io_uring_handler &io_uring_handler, const int fd,
-                 const std::vector<char> &buffer);
+  send_awaitable(
+      io_uring_handler &io_uring_handler, const int fd,
+      const std::vector<char> &buffer
+  );
 
   bool await_ready();
   void await_suspend(std::coroutine_handle<>);
@@ -81,9 +88,10 @@ private:
 
 class accept_awaitable {
 public:
-  accept_awaitable(io_uring_handler &io_uring_handler, const int fd,
-                   sockaddr_storage *client_address,
-                   socklen_t *client_address_size);
+  accept_awaitable(
+      io_uring_handler &io_uring_handler, const int fd,
+      sockaddr_storage *client_address, socklen_t *client_address_size
+  );
 
   bool await_ready();
   void await_suspend(std::coroutine_handle<>);

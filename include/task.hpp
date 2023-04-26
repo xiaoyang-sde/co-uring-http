@@ -13,8 +13,8 @@ public:
 
   task() noexcept : coroutine(nullptr) {}
 
-  explicit task(
-      std::coroutine_handle<task_promise<T>> coroutine_handle) noexcept
+  explicit task(std::coroutine_handle<task_promise<T>> coroutine_handle
+  ) noexcept
       : coroutine(coroutine_handle) {}
 
   ~task() noexcept {
@@ -88,8 +88,8 @@ public:
   public:
     constexpr auto await_ready() const noexcept -> bool { return false; }
     constexpr auto await_resume() const noexcept -> void { return; }
-    auto await_suspend(std::coroutine_handle<task_promise<T>> coroutine)
-        const noexcept -> std::coroutine_handle<> {
+    auto await_suspend(std::coroutine_handle<task_promise<T>> coroutine
+    ) const noexcept -> std::coroutine_handle<> {
       return coroutine.promise().calling_coroutine;
     }
   };

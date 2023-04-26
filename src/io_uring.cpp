@@ -34,31 +34,35 @@ auto io_uring_handler::submit_and_wait(const int wait_nr) -> int {
   return result;
 }
 
-auto io_uring_handler::submit_accept_request(int fd, sqe_user_data *sqe_data,
-                                             sockaddr *client_addr,
-                                             socklen_t *client_len) -> void {
+auto io_uring_handler::submit_accept_request(
+    int fd, sqe_user_data *sqe_data, sockaddr *client_addr,
+    socklen_t *client_len
+) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&ring);
   io_uring_prep_accept(sqe, fd, client_addr, client_len, 0);
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
-auto io_uring_handler::submit_recv_request(int fd, sqe_user_data *sqe_data,
-                                           std::vector<char> &buffer) -> void {
+auto io_uring_handler::submit_recv_request(
+    int fd, sqe_user_data *sqe_data, std::vector<char> &buffer
+) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&ring);
   io_uring_prep_recv(sqe, fd, buffer.data(), buffer.size(), 0);
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
-auto io_uring_handler::submit_send_request(int fd, sqe_user_data *sqe_data,
-                                           const std::vector<char> &buffer)
-    -> void {
+auto io_uring_handler::submit_send_request(
+    int fd, sqe_user_data *sqe_data, const std::vector<char> &buffer
+) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&ring);
   io_uring_prep_send(sqe, fd, buffer.data(), buffer.size(), 0);
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
-recv_awaitable::recv_awaitable(class io_uring_handler &io_uring_handler,
-                               const int fd, std::vector<char> &buffer)
+recv_awaitable::recv_awaitable(
+    class io_uring_handler &io_uring_handler, const int fd,
+    std::vector<char> &buffer
+)
     : fd{fd}, io_uring_handler{io_uring_handler}, buffer{buffer} {}
 
 bool recv_awaitable::await_ready() { return false; }
@@ -71,8 +75,10 @@ void recv_awaitable::await_suspend(std::coroutine_handle<>) {
 
 size_t recv_awaitable::await_resume() { return sqe_user_data.result; }
 
-send_awaitable::send_awaitable(class io_uring_handler &io_uring_handler,
-                               const int fd, const std::vector<char> &buffer)
+send_awaitable::send_awaitable(
+    class io_uring_handler &io_uring_handler, const int fd,
+    const std::vector<char> &buffer
+)
     : fd{fd}, io_uring_handler{io_uring_handler}, buffer{buffer} {};
 
 bool send_awaitable::await_ready() { return false; }
@@ -85,10 +91,10 @@ void send_awaitable::await_suspend(std::coroutine_handle<>) {
 
 size_t send_awaitable::await_resume() { return sqe_user_data.result; }
 
-accept_awaitable::accept_awaitable(class io_uring_handler &io_uring_handler,
-                                   const int fd,
-                                   sockaddr_storage *client_address,
-                                   socklen_t *client_address_size)
+accept_awaitable::accept_awaitable(
+    class io_uring_handler &io_uring_handler, const int fd,
+    sockaddr_storage *client_address, socklen_t *client_address_size
+)
     : fd{fd}, io_uring_handler{io_uring_handler},
       client_address{client_address}, client_address_size{client_address_size} {
 }
@@ -100,7 +106,8 @@ void accept_awaitable::await_suspend(std::coroutine_handle<>) {
   sqe_user_data.fd = fd;
   io_uring_handler.submit_accept_request(
       fd, &sqe_user_data, reinterpret_cast<sockaddr *>(client_address),
-      client_address_size);
+      client_address_size
+  );
 }
 
 size_t accept_awaitable::await_resume() { return sqe_user_data.result; }

@@ -10,8 +10,9 @@ template <typename T> class [[nodiscard]] sync_wait_task {
 public:
   using promise_type = sync_wait_task_promise<T>;
 
-  explicit sync_wait_task(std::coroutine_handle<sync_wait_task_promise<T>>
-                              coroutine_handle) noexcept
+  explicit sync_wait_task(
+      std::coroutine_handle<sync_wait_task_promise<T>> coroutine_handle
+  ) noexcept
       : coroutine(coroutine_handle) {}
 
   ~sync_wait_task() {
@@ -42,8 +43,9 @@ public:
 
     constexpr auto await_resume() const noexcept -> void { return; }
 
-    auto await_suspend(std::coroutine_handle<sync_wait_task_promise<T>>
-                           coroutine) const noexcept -> void {
+    auto
+    await_suspend(std::coroutine_handle<sync_wait_task_promise<T>> coroutine
+    ) const noexcept -> void {
       std::atomic_flag &atomic_flag = coroutine.promise().get_atomic_flag();
       atomic_flag.test_and_set();
       atomic_flag.notify_all();
