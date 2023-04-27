@@ -11,21 +11,22 @@ template <typename T = void> class [[nodiscard]] task {
 public:
   using promise_type = task_promise<T>;
 
-  task() noexcept : coroutine(nullptr) {}
-
   explicit task(std::coroutine_handle<task_promise<T>> coroutine_handle
   ) noexcept
       : coroutine(coroutine_handle) {}
 
   ~task() noexcept {
     if (coroutine) {
-      coroutine.destroy();
+      if (coroutine.done()) {
+        coroutine.destroy();
+      } else {
+        coroutine.promise().set_detached_coroutine(coroutine);
+      }
     }
   }
 
-  task(task &&other) noexcept : coroutine(other.coroutine) {
-    other.coroutine = nullptr;
-  }
+  task(task &&other) noexcept
+      : coroutine{std::exchange(other.coroutine, nullptr)} {}
 
   auto operator=(task &&other) noexcept -> task & {
     if (this == std::addressof(other)) {
@@ -35,8 +36,8 @@ public:
     if (coroutine) {
       coroutine.destroy();
     }
-    coroutine = other.coroutine;
-    other.coroutine = nullptr;
+
+    coroutine = std::exchange(other.coroutine, nullptr);
     return *this;
   }
 
@@ -78,32 +79,56 @@ public:
     coroutine.resume();
   }
 
+  auto detach() noexcept {
+    coroutine.promise().set_detached_coroutine(coroutine);
+    coroutine = nullptr;
+  }
+
 private:
-  std::coroutine_handle<task_promise<T>> coroutine;
+  std::coroutine_handle<task_promise<T>> coroutine = nullptr;
 };
 
 template <typename T> class task_promise_base {
 public:
   class final_awaitable {
   public:
+    final_awaitable(std::coroutine_handle<> detached_coroutine)
+        : detached_coroutine{detached_coroutine} {};
+
     constexpr auto await_ready() const noexcept -> bool { return false; }
     constexpr auto await_resume() const noexcept -> void { return; }
     auto await_suspend(std::coroutine_handle<task_promise<T>> coroutine
     ) const noexcept -> std::coroutine_handle<> {
-      return coroutine.promise().calling_coroutine;
+      if (coroutine.promise().calling_coroutine) {
+        return coroutine.promise().calling_coroutine;
+      }
+      if (detached_coroutine) {
+        detached_coroutine.destroy();
+      }
+      return std::noop_coroutine();
     }
+
+  private:
+    std::coroutine_handle<> detached_coroutine;
   };
 
   auto initial_suspend() noexcept -> std::suspend_always { return {}; }
-  auto final_suspend() noexcept -> final_awaitable { return {}; }
+  auto final_suspend() noexcept -> final_awaitable {
+    return {detached_coroutine};
+  }
   auto unhandled_exception() -> void { std::terminate(); }
 
   auto set_calling_coroutine(std::coroutine_handle<> coroutine) -> void {
     calling_coroutine = coroutine;
   }
 
+  auto set_detached_coroutine(std::coroutine_handle<> coroutine) -> void {
+    detached_coroutine = coroutine;
+  }
+
 public:
-  std::coroutine_handle<> calling_coroutine = std::noop_coroutine();
+  std::coroutine_handle<> calling_coroutine = nullptr;
+  std::coroutine_handle<> detached_coroutine = nullptr;
 };
 
 template <typename T> class task_promise final : public task_promise_base<T> {

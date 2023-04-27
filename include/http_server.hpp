@@ -6,25 +6,19 @@
 #include "task.hpp"
 #include "thread_pool.hpp"
 
-#include <map>
-
 namespace co_uring_http {
 class thread_worker {
 public:
   thread_worker(const char *port);
 
-  auto get_socket_fd() const noexcept -> int;
-
   auto accept_loop() -> task<>;
 
-  auto handle_client(const int client_fd) -> task<>;
+  auto handle_client(socket_file_descriptor client_fd) -> task<>;
 
   auto event_loop() -> task<>;
 
 private:
-  std::map<int, task<>> client_map;
-  io_uring_handler io_uring_handler;
-  socket_handler socket_handler;
+  socket_file_descriptor socket;
 };
 
 class http_server {

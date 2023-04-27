@@ -1,11 +1,12 @@
+#include <coroutine>
+
 #include "http_server.hpp"
+#include "socket.hpp"
 
 namespace co_uring_http {
-thread_worker::thread_worker(const char *port)
-    : io_uring_handler{2048}, socket_handler{port} {}
-
-auto thread_worker::get_socket_fd() const noexcept -> int {
-  return socket_handler.get_socket_fd();
+thread_worker::thread_worker(const char *port) : socket{} {
+  socket.bind(port);
+  socket.listen();
 }
 
 auto thread_worker::accept_loop() -> task<> {
@@ -13,33 +14,39 @@ auto thread_worker::accept_loop() -> task<> {
     sockaddr_storage client_address;
     socklen_t client_address_size = sizeof(client_address);
 
-    const int client_fd = co_await accept_awaitable(
-        io_uring_handler, get_socket_fd(), &client_address, &client_address_size
-    );
-    client_map.insert_or_assign(client_fd, handle_client(client_fd));
-    client_map[client_fd].resume();
+    const int client_fd =
+        co_await socket.accept(&client_address, &client_address_size);
+    if (client_fd == -1) {
+      continue;
+    }
+
+    task<> task = handle_client(socket_file_descriptor(client_fd));
+    task.resume();
+    task.detach();
   }
 }
 
-auto thread_worker::handle_client(const int client_fd) -> task<> {
+auto thread_worker::handle_client(socket_file_descriptor client_fd) -> task<> {
   std::vector<char> read_buffer(1024);
-  co_await recv_awaitable(io_uring_handler, client_fd, read_buffer);
+  co_await client_fd.recv(read_buffer);
 
   std::string header = "HTTP/1.1 200 OK\r\nContent-Length: 4096\r\n\r\n";
   std::string response = header + std::string(4096, ' ');
 
   std::vector<char> write_buffer(response.cbegin(), response.cend());
-  co_await send_awaitable(io_uring_handler, client_fd, write_buffer);
-  close(client_fd);
+  co_await client_fd.send(write_buffer);
 }
 
 auto thread_worker::event_loop() -> task<> {
-  client_map.insert_or_assign(get_socket_fd(), accept_loop());
-  client_map[get_socket_fd()].resume();
+  io_uring_handler &io_uring_handler = io_uring_handler::get_instance();
+
+  task<> task = accept_loop();
+  task.resume();
+  task.detach();
 
   while (true) {
     io_uring_handler.submit_and_wait(1);
-    io_uring_handler.for_each_cqe([this](io_uring_cqe *cqe) {
+    io_uring_handler.for_each_cqe([&io_uring_handler](io_uring_cqe *cqe) {
       sqe_user_data *sqe_user_data =
           reinterpret_cast<struct sqe_user_data *>(cqe->user_data);
 
@@ -48,8 +55,9 @@ auto thread_worker::event_loop() -> task<> {
       case sqe_user_data::RECV:
       case sqe_user_data::SEND: {
         sqe_user_data->result = cqe->res;
-        if (client_map.contains(sqe_user_data->fd)) {
-          client_map[sqe_user_data->fd].resume();
+        if (sqe_user_data->coroutine) {
+          std::coroutine_handle<>::from_address(sqe_user_data->coroutine)
+              .resume();
         }
         break;
       }
