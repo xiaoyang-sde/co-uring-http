@@ -1,4 +1,5 @@
 #include "io_uring.hpp"
+#include <liburing.h>
 #include <stdexcept>
 
 constexpr size_t IO_URING_QUEUE_SIZE = 2048;
@@ -41,12 +42,12 @@ auto io_uring_handler::submit_and_wait(const int wait_nr) -> int {
   return result;
 }
 
-auto io_uring_handler::submit_accept_request(
+auto io_uring_handler::submit_multishot_accept_request(
     int fd, sqe_user_data *sqe_data, sockaddr *client_addr,
     socklen_t *client_len
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&ring);
-  io_uring_prep_accept(sqe, fd, client_addr, client_len, 0);
+  io_uring_prep_multishot_accept(sqe, fd, client_addr, client_len, 0);
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
@@ -64,6 +65,11 @@ auto io_uring_handler::submit_send_request(
   io_uring_sqe *sqe = io_uring_get_sqe(&ring);
   io_uring_prep_send(sqe, fd, buffer.data(), buffer.size(), 0);
   io_uring_sqe_set_data(sqe, sqe_data);
+}
+
+auto io_uring_handler::submit_cancel_request(sqe_user_data *sqe_data) -> void {
+  io_uring_sqe *sqe = io_uring_get_sqe(&ring);
+  io_uring_prep_cancel(sqe, sqe_data, 0);
 }
 
 } // namespace co_uring_http

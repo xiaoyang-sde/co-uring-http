@@ -4,37 +4,33 @@
 #include "socket.hpp"
 
 namespace co_uring_http {
-thread_worker::thread_worker(const char *port) : socket{} {
-  socket.bind(port);
-  socket.listen();
+thread_worker::thread_worker(const char *port) : server_socket{} {
+  server_socket.bind(port);
+  server_socket.listen();
 }
 
 auto thread_worker::accept_loop() -> task<> {
   while (true) {
-    sockaddr_storage client_address;
-    socklen_t client_address_size = sizeof(client_address);
-
-    const int client_fd =
-        co_await socket.accept(&client_address, &client_address_size);
+    const int client_fd = co_await server_socket.accept();
     if (client_fd == -1) {
       continue;
     }
 
-    task<> task = handle_client(socket_file_descriptor(client_fd));
+    task<> task = handle_client(client_socket(client_fd));
     task.resume();
     task.detach();
   }
 }
 
-auto thread_worker::handle_client(socket_file_descriptor client_fd) -> task<> {
+auto thread_worker::handle_client(client_socket client_socket) -> task<> {
   std::vector<char> read_buffer(1024);
-  co_await client_fd.recv(read_buffer);
+  co_await client_socket.recv(read_buffer);
 
   std::string header = "HTTP/1.1 200 OK\r\nContent-Length: 4096\r\n\r\n";
   std::string response = header + std::string(4096, ' ');
 
   std::vector<char> write_buffer(response.cbegin(), response.cend());
-  co_await client_fd.send(write_buffer);
+  co_await client_socket.send(write_buffer);
 }
 
 auto thread_worker::event_loop() -> task<> {
@@ -55,6 +51,7 @@ auto thread_worker::event_loop() -> task<> {
       case sqe_user_data::RECV:
       case sqe_user_data::SEND: {
         sqe_user_data->result = cqe->res;
+        sqe_user_data->cqe_flags = cqe->flags;
         if (sqe_user_data->coroutine) {
           std::coroutine_handle<>::from_address(sqe_user_data->coroutine)
               .resume();

@@ -17,7 +17,8 @@ struct sqe_user_data {
 
   type type;
   void *coroutine;
-  size_t result;
+  int result;
+  unsigned int cqe_flags;
 };
 
 class io_uring_handler {
@@ -44,7 +45,7 @@ public:
 
   auto submit_and_wait(const int wait_nr) -> int;
 
-  auto submit_accept_request(
+  auto submit_multishot_accept_request(
       int fd, sqe_user_data *sqe_data, sockaddr *client_addr,
       socklen_t *client_len
   ) -> void;
@@ -56,6 +57,8 @@ public:
   auto submit_send_request(
       int fd, sqe_user_data *sqe_data, const std::vector<char> &buffer
   ) -> void;
+
+  auto submit_cancel_request(sqe_user_data *sqe_data) -> void;
 
   io_uring ring;
 };

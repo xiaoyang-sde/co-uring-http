@@ -13,12 +13,12 @@ public:
 
   auto accept_loop() -> task<>;
 
-  auto handle_client(socket_file_descriptor client_fd) -> task<>;
+  auto handle_client(client_socket client_socket) -> task<>;
 
   auto event_loop() -> task<>;
 
 private:
-  socket_file_descriptor socket;
+  server_socket server_socket;
 };
 
 class http_server {

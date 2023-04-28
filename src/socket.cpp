@@ -10,12 +10,9 @@
 constexpr int LISTEN_QUEUE_SIZE = 512;
 
 namespace co_uring_http {
-socket_file_descriptor::socket_file_descriptor() {}
+server_socket::server_socket() {}
 
-socket_file_descriptor::socket_file_descriptor(const int fd)
-    : file_descriptor{fd} {}
-
-auto socket_file_descriptor::bind(const char *port) -> void {
+auto server_socket::bind(const char *port) -> void {
   addrinfo address_hints;
   addrinfo *socket_address;
 
@@ -53,7 +50,7 @@ auto socket_file_descriptor::bind(const char *port) -> void {
   freeaddrinfo(socket_address);
 }
 
-auto socket_file_descriptor::listen() -> void {
+auto server_socket::listen() -> void {
   if (!fd.has_value()) {
     throw std::runtime_error("the file descriptor is invalid");
   }
@@ -63,16 +60,71 @@ auto socket_file_descriptor::listen() -> void {
   }
 }
 
-socket_file_descriptor::recv_awaitable::recv_awaitable(
+server_socket::multishot_accept_guard::multishot_accept_guard(
+    const int fd, sockaddr_storage *client_address,
+    socklen_t *client_address_size
+)
+    : fd{fd}, client_address{client_address}, client_address_size{
+                                                  client_address_size} {}
+
+server_socket::multishot_accept_guard::~multishot_accept_guard() {
+  io_uring_handler::get_instance().submit_cancel_request(&sqe_user_data);
+}
+
+auto server_socket::multishot_accept_guard::await_ready() -> bool {
+  return false;
+}
+
+auto server_socket::multishot_accept_guard::await_suspend(
+    std::coroutine_handle<> coroutine
+) -> void {
+  if (initial_await) {
+    sqe_user_data.type = sqe_user_data::type::ACCEPT;
+    sqe_user_data.coroutine = coroutine.address();
+
+    io_uring_handler::get_instance().submit_multishot_accept_request(
+        fd, &sqe_user_data, reinterpret_cast<sockaddr *>(client_address),
+        client_address_size
+    );
+    initial_await = false;
+  }
+}
+
+auto server_socket::multishot_accept_guard::await_resume() -> int {
+  if (!(sqe_user_data.cqe_flags & IORING_CQE_F_MORE)) {
+    io_uring_handler::get_instance().submit_multishot_accept_request(
+        fd, &sqe_user_data, reinterpret_cast<sockaddr *>(client_address),
+        client_address_size
+    );
+  }
+  return sqe_user_data.result;
+}
+
+auto server_socket::accept(
+    sockaddr_storage *client_address, socklen_t *client_address_size
+) -> class multishot_accept_guard & {
+  if (!fd.has_value()) {
+    throw std::runtime_error("the file descriptor is invalid");
+  }
+
+  if (!multishot_accept_guard.has_value()) {
+    multishot_accept_guard.emplace(
+        fd.value(), client_address, client_address_size
+    );
+  }
+  return multishot_accept_guard.value();
+}
+
+client_socket::client_socket(const int fd) : file_descriptor{fd} {}
+
+client_socket::recv_awaitable::recv_awaitable(
     const int fd, std::vector<char> &buffer
 )
     : fd{fd}, buffer{buffer} {}
 
-auto socket_file_descriptor::recv_awaitable::await_ready() -> bool {
-  return false;
-}
+auto client_socket::recv_awaitable::await_ready() -> bool { return false; }
 
-auto socket_file_descriptor::recv_awaitable::await_suspend(
+auto client_socket::recv_awaitable::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
   sqe_user_data.type = sqe_user_data::type::RECV;
@@ -83,27 +135,25 @@ auto socket_file_descriptor::recv_awaitable::await_suspend(
   );
 }
 
-auto socket_file_descriptor::recv_awaitable::await_resume() -> size_t {
+auto client_socket::recv_awaitable::await_resume() -> size_t {
   return sqe_user_data.result;
 }
 
-auto socket_file_descriptor::recv(std::vector<char> &buffer) -> recv_awaitable {
+auto client_socket::recv(std::vector<char> &buffer) -> recv_awaitable {
   if (fd.has_value()) {
     return recv_awaitable(fd.value(), buffer);
   }
   throw std::runtime_error("the file descriptor is invalid");
 }
 
-socket_file_descriptor::send_awaitable::send_awaitable(
+client_socket::send_awaitable::send_awaitable(
     const int fd, const std::vector<char> &buffer
 )
     : fd{fd}, buffer{buffer} {};
 
-auto socket_file_descriptor::send_awaitable::await_ready() -> bool {
-  return false;
-}
+auto client_socket::send_awaitable::await_ready() -> bool { return false; }
 
-auto socket_file_descriptor::send_awaitable::await_suspend(
+auto client_socket::send_awaitable::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
   sqe_user_data.type = sqe_user_data::type::SEND;
@@ -114,50 +164,13 @@ auto socket_file_descriptor::send_awaitable::await_suspend(
   );
 }
 
-auto socket_file_descriptor::send_awaitable::await_resume() -> size_t {
+auto client_socket::send_awaitable::await_resume() -> size_t {
   return sqe_user_data.result;
 }
 
-auto socket_file_descriptor::send(const std::vector<char> &buffer)
-    -> send_awaitable {
+auto client_socket::send(const std::vector<char> &buffer) -> send_awaitable {
   if (fd.has_value()) {
     return send_awaitable(fd.value(), buffer);
-  }
-  throw std::runtime_error("the file descriptor is invalid");
-}
-
-socket_file_descriptor::accept_awaitable::accept_awaitable(
-    const int fd, sockaddr_storage *client_address,
-    socklen_t *client_address_size
-)
-    : fd{fd}, client_address{client_address},
-      client_address_size{client_address_size} {}
-
-auto socket_file_descriptor::accept_awaitable::await_ready() -> bool {
-  return false;
-}
-
-auto socket_file_descriptor::accept_awaitable::await_suspend(
-    std::coroutine_handle<> coroutine
-) -> void {
-  sqe_user_data.type = sqe_user_data::type::ACCEPT;
-  sqe_user_data.coroutine = coroutine.address();
-
-  io_uring_handler::get_instance().submit_accept_request(
-      fd, &sqe_user_data, reinterpret_cast<sockaddr *>(client_address),
-      client_address_size
-  );
-}
-
-auto socket_file_descriptor::accept_awaitable::await_resume() -> int {
-  return sqe_user_data.result;
-}
-
-auto socket_file_descriptor::accept(
-    sockaddr_storage *client_address, socklen_t *client_address_size
-) -> accept_awaitable {
-  if (fd.has_value()) {
-    return accept_awaitable(fd.value(), client_address, client_address_size);
   }
   throw std::runtime_error("the file descriptor is invalid");
 }

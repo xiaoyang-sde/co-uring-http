@@ -9,15 +9,46 @@
 
 namespace co_uring_http {
 
-class socket_file_descriptor : public file_descriptor {
+class server_socket : public file_descriptor {
 public:
-  socket_file_descriptor();
-
-  explicit socket_file_descriptor(const int fd);
+  server_socket();
 
   auto bind(const char *port) -> void;
 
   auto listen() -> void;
+
+  class multishot_accept_guard {
+  public:
+    multishot_accept_guard(
+        const int fd, sockaddr_storage *client_address,
+        socklen_t *client_address_size
+    );
+    ~multishot_accept_guard();
+
+    auto await_ready() -> bool;
+    auto await_suspend(std::coroutine_handle<> coroutine) -> void;
+    auto await_resume() -> int;
+
+  private:
+    bool initial_await = true;
+    const int fd;
+    sockaddr_storage *client_address;
+    socklen_t *client_address_size;
+    sqe_user_data sqe_user_data;
+  };
+
+  auto accept(
+      sockaddr_storage *client_address = nullptr,
+      socklen_t *client_address_size = nullptr
+  ) -> multishot_accept_guard &;
+
+private:
+  std::optional<multishot_accept_guard> multishot_accept_guard;
+};
+
+class client_socket : public file_descriptor {
+public:
+  explicit client_socket(const int fd);
 
   class recv_awaitable {
   public:
@@ -50,28 +81,8 @@ public:
   };
 
   auto send(const std::vector<char> &buffer) -> send_awaitable;
-
-  class accept_awaitable {
-  public:
-    accept_awaitable(
-        const int fd, sockaddr_storage *client_address,
-        socklen_t *client_address_size
-    );
-
-    auto await_ready() -> bool;
-    auto await_suspend(std::coroutine_handle<> coroutine) -> void;
-    auto await_resume() -> int;
-
-  private:
-    const int fd;
-    sqe_user_data sqe_user_data;
-    sockaddr_storage *client_address;
-    socklen_t *client_address_size;
-  };
-
-  auto accept(sockaddr_storage *client_address, socklen_t *client_address_size)
-      -> accept_awaitable;
 };
+
 } // namespace co_uring_http
 
 #endif
