@@ -12,19 +12,19 @@ thread_pool::~thread_pool() {
   condition_variable.notify_all();
 }
 
-thread_pool::schedule_awaitable::schedule_awaitable(
+thread_pool::schedule_awaiter::schedule_awaiter(
     class thread_pool &thread_pool
 )
     : thread_pool{thread_pool} {}
 
-auto thread_pool::schedule_awaitable::await_suspend(
+auto thread_pool::schedule_awaiter::await_suspend(
     std::coroutine_handle<> handle
 ) const noexcept -> void {
   thread_pool.enqueue(handle);
 }
 
-auto thread_pool::schedule() -> schedule_awaitable {
-  return schedule_awaitable{*this};
+auto thread_pool::schedule() -> schedule_awaiter {
+  return schedule_awaiter{*this};
 }
 
 auto thread_pool::size() const noexcept -> size_t { return thread_list.size(); }

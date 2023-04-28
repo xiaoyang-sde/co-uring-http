@@ -45,9 +45,9 @@ public:
 
   auto operator=(const task &other) -> task & = delete;
 
-  class task_awaitable {
+  class task_awaiter {
   public:
-    explicit task_awaitable(std::coroutine_handle<task_promise<T>> coroutine)
+    explicit task_awaiter(std::coroutine_handle<task_promise<T>> coroutine)
         : coroutine{coroutine} {}
 
     constexpr auto await_ready() const noexcept -> bool {
@@ -68,8 +68,8 @@ public:
     std::coroutine_handle<task_promise<T>> coroutine;
   };
 
-  auto operator co_await() noexcept -> task_awaitable {
-    return task_awaitable(coroutine);
+  auto operator co_await() noexcept -> task_awaiter {
+    return task_awaiter(coroutine);
   }
 
   auto resume() noexcept -> void {
@@ -90,9 +90,9 @@ private:
 
 template <typename T> class task_promise_base {
 public:
-  class final_awaitable {
+  class final_awaiter {
   public:
-    final_awaitable(std::coroutine_handle<> detached_coroutine)
+    final_awaiter(std::coroutine_handle<> detached_coroutine)
         : detached_coroutine{detached_coroutine} {};
 
     constexpr auto await_ready() const noexcept -> bool { return false; }
@@ -113,7 +113,7 @@ public:
   };
 
   auto initial_suspend() noexcept -> std::suspend_always { return {}; }
-  auto final_suspend() noexcept -> final_awaitable {
+  auto final_suspend() noexcept -> final_awaiter {
     return {detached_coroutine};
   }
   auto unhandled_exception() -> void { std::terminate(); }

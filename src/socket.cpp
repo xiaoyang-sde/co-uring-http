@@ -117,14 +117,14 @@ auto server_socket::accept(
 
 client_socket::client_socket(const int fd) : file_descriptor{fd} {}
 
-client_socket::recv_awaitable::recv_awaitable(
+client_socket::recv_awaiter::recv_awaiter(
     const int fd, std::vector<char> &buffer
 )
     : fd{fd}, buffer{buffer} {}
 
-auto client_socket::recv_awaitable::await_ready() -> bool { return false; }
+auto client_socket::recv_awaiter::await_ready() -> bool { return false; }
 
-auto client_socket::recv_awaitable::await_suspend(
+auto client_socket::recv_awaiter::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
   sqe_user_data.type = sqe_user_data::type::RECV;
@@ -135,25 +135,25 @@ auto client_socket::recv_awaitable::await_suspend(
   );
 }
 
-auto client_socket::recv_awaitable::await_resume() -> size_t {
+auto client_socket::recv_awaiter::await_resume() -> size_t {
   return sqe_user_data.result;
 }
 
-auto client_socket::recv(std::vector<char> &buffer) -> recv_awaitable {
+auto client_socket::recv(std::vector<char> &buffer) -> recv_awaiter {
   if (fd.has_value()) {
-    return recv_awaitable(fd.value(), buffer);
+    return recv_awaiter(fd.value(), buffer);
   }
   throw std::runtime_error("the file descriptor is invalid");
 }
 
-client_socket::send_awaitable::send_awaitable(
+client_socket::send_awaiter::send_awaiter(
     const int fd, const std::vector<char> &buffer
 )
     : fd{fd}, buffer{buffer} {};
 
-auto client_socket::send_awaitable::await_ready() -> bool { return false; }
+auto client_socket::send_awaiter::await_ready() -> bool { return false; }
 
-auto client_socket::send_awaitable::await_suspend(
+auto client_socket::send_awaiter::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
   sqe_user_data.type = sqe_user_data::type::SEND;
@@ -164,13 +164,13 @@ auto client_socket::send_awaitable::await_suspend(
   );
 }
 
-auto client_socket::send_awaitable::await_resume() -> size_t {
+auto client_socket::send_awaiter::await_resume() -> size_t {
   return sqe_user_data.result;
 }
 
-auto client_socket::send(const std::vector<char> &buffer) -> send_awaitable {
+auto client_socket::send(const std::vector<char> &buffer) -> send_awaiter {
   if (fd.has_value()) {
-    return send_awaitable(fd.value(), buffer);
+    return send_awaiter(fd.value(), buffer);
   }
   throw std::runtime_error("the file descriptor is invalid");
 }

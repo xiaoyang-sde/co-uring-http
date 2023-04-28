@@ -50,9 +50,9 @@ class client_socket : public file_descriptor {
 public:
   explicit client_socket(const int fd);
 
-  class recv_awaitable {
+  class recv_awaiter {
   public:
-    recv_awaitable(const int fd, std::vector<char> &buffer);
+    recv_awaiter(const int fd, std::vector<char> &buffer);
 
     auto await_ready() -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
@@ -64,11 +64,11 @@ public:
     sqe_user_data sqe_user_data;
   };
 
-  auto recv(std::vector<char> &buffer) -> recv_awaitable;
+  auto recv(std::vector<char> &buffer) -> recv_awaiter;
 
-  class send_awaitable {
+  class send_awaiter {
   public:
-    send_awaitable(const int fd, const std::vector<char> &buffer);
+    send_awaiter(const int fd, const std::vector<char> &buffer);
 
     auto await_ready() -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
@@ -80,7 +80,7 @@ public:
     sqe_user_data sqe_user_data;
   };
 
-  auto send(const std::vector<char> &buffer) -> send_awaitable;
+  auto send(const std::vector<char> &buffer) -> send_awaiter;
 };
 
 } // namespace co_uring_http

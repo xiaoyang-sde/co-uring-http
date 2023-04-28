@@ -15,9 +15,9 @@ public:
 
   ~thread_pool();
 
-  class schedule_awaitable {
+  class schedule_awaiter {
   public:
-    schedule_awaitable(thread_pool &thread_pool);
+    schedule_awaiter(thread_pool &thread_pool);
 
     constexpr auto await_ready() const noexcept -> bool { return false; }
 
@@ -29,7 +29,7 @@ public:
     thread_pool &thread_pool;
   };
 
-  auto schedule() -> schedule_awaitable;
+  auto schedule() -> schedule_awaiter;
 
   auto size() const noexcept -> size_t;
 

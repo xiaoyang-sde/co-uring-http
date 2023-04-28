@@ -37,7 +37,7 @@ template <typename T> class sync_wait_task_promise_base {
 public:
   auto initial_suspend() const noexcept -> std::suspend_never { return {}; }
 
-  class final_awaitable {
+  class final_awaiter {
   public:
     constexpr auto await_ready() const noexcept -> bool { return false; }
 
@@ -52,7 +52,7 @@ public:
     }
   };
 
-  auto final_suspend() const noexcept -> final_awaitable { return {}; }
+  auto final_suspend() const noexcept -> final_awaiter { return {}; }
 
   auto unhandled_exception() const noexcept -> void { std::terminate(); }
 
