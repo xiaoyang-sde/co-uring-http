@@ -30,11 +30,11 @@ public:
     auto await_resume() -> int;
 
   private:
-    bool initial_await = true;
-    const int fd;
-    sockaddr_storage *client_address;
-    socklen_t *client_address_size;
-    sqe_user_data sqe_user_data;
+    bool initial_await_ = true;
+    const int fd_;
+    sockaddr_storage *client_address_;
+    socklen_t *client_address_size_;
+    sqe_data sqe_data_;
   };
 
   auto accept(
@@ -43,7 +43,7 @@ public:
   ) -> multishot_accept_guard &;
 
 private:
-  std::optional<multishot_accept_guard> multishot_accept_guard;
+  std::optional<multishot_accept_guard> multishot_accept_guard_;
 };
 
 class client_socket : public file_descriptor {
@@ -59,9 +59,9 @@ public:
     auto await_resume() -> size_t;
 
   private:
-    int fd;
-    std::vector<char> &buffer;
-    sqe_user_data sqe_user_data;
+    const int fd_;
+    std::vector<char> &buffer_;
+    sqe_data sqe_data_;
   };
 
   auto recv(std::vector<char> &buffer) -> recv_awaiter;
@@ -75,9 +75,9 @@ public:
     auto await_resume() -> size_t;
 
   private:
-    const int fd;
-    const std::vector<char> &buffer;
-    sqe_user_data sqe_user_data;
+    const int fd_;
+    const std::vector<char> &buffer_;
+    sqe_data sqe_data_;
   };
 
   auto send(const std::vector<char> &buffer) -> send_awaiter;

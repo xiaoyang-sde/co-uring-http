@@ -26,23 +26,25 @@ auto server_socket::bind(const char *port) -> void {
   }
 
   for (auto node = socket_address; node != nullptr; node = node->ai_next) {
-    fd = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
-    if (fd.value() == -1) {
+    fd_ = socket(node->ai_family, node->ai_socktype, node->ai_protocol);
+    if (fd_.value() == -1) {
       throw std::runtime_error("failed to invoke 'socket'");
     }
 
     const int flag = 1;
-    if (setsockopt(fd.value(), SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)) ==
-        -1) {
+    if (setsockopt(
+            fd_.value(), SOL_SOCKET, SO_REUSEADDR, &flag, sizeof(flag)
+        ) == -1) {
       throw std::runtime_error("failed to invoke 'setsockopt'");
     }
 
-    if (setsockopt(fd.value(), SOL_SOCKET, SO_REUSEPORT, &flag, sizeof(flag)) ==
-        -1) {
+    if (setsockopt(
+            fd_.value(), SOL_SOCKET, SO_REUSEPORT, &flag, sizeof(flag)
+        ) == -1) {
       throw std::runtime_error("failed to invoke 'setsockopt'");
     }
 
-    if (::bind(fd.value(), node->ai_addr, node->ai_addrlen) == -1) {
+    if (::bind(fd_.value(), node->ai_addr, node->ai_addrlen) == -1) {
       throw std::runtime_error("failed to invoke 'bind'");
     }
     break;
@@ -51,11 +53,11 @@ auto server_socket::bind(const char *port) -> void {
 }
 
 auto server_socket::listen() -> void {
-  if (!fd.has_value()) {
+  if (!fd_.has_value()) {
     throw std::runtime_error("the file descriptor is invalid");
   }
 
-  if (::listen(fd.value(), LISTEN_QUEUE_SIZE) == -1) {
+  if (::listen(fd_.value(), LISTEN_QUEUE_SIZE) == -1) {
     throw std::runtime_error("failed to invoke 'listen'");
   }
 }
@@ -64,11 +66,11 @@ server_socket::multishot_accept_guard::multishot_accept_guard(
     const int fd, sockaddr_storage *client_address,
     socklen_t *client_address_size
 )
-    : fd{fd}, client_address{client_address}, client_address_size{
-                                                  client_address_size} {}
+    : fd_{fd}, client_address_{client_address}, client_address_size_{
+                                                    client_address_size} {}
 
 server_socket::multishot_accept_guard::~multishot_accept_guard() {
-  io_uring_handler::get_instance().submit_cancel_request(&sqe_user_data);
+  io_uring_handler::get_instance().submit_cancel_request(&sqe_data_);
 }
 
 auto server_socket::multishot_accept_guard::await_ready() -> bool {
@@ -78,41 +80,41 @@ auto server_socket::multishot_accept_guard::await_ready() -> bool {
 auto server_socket::multishot_accept_guard::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
-  if (initial_await) {
-    sqe_user_data.type = sqe_user_data::type::ACCEPT;
-    sqe_user_data.coroutine = coroutine.address();
+  if (initial_await_) {
+    sqe_data_.type = sqe_data::type::ACCEPT;
+    sqe_data_.coroutine = coroutine.address();
 
     io_uring_handler::get_instance().submit_multishot_accept_request(
-        fd, &sqe_user_data, reinterpret_cast<sockaddr *>(client_address),
-        client_address_size
+        fd_, &sqe_data_, reinterpret_cast<sockaddr *>(client_address_),
+        client_address_size_
     );
-    initial_await = false;
+    initial_await_ = false;
   }
 }
 
 auto server_socket::multishot_accept_guard::await_resume() -> int {
-  if (!(sqe_user_data.cqe_flags & IORING_CQE_F_MORE)) {
+  if (!(sqe_data_.cqe_flags & IORING_CQE_F_MORE)) {
     io_uring_handler::get_instance().submit_multishot_accept_request(
-        fd, &sqe_user_data, reinterpret_cast<sockaddr *>(client_address),
-        client_address_size
+        fd_, &sqe_data_, reinterpret_cast<sockaddr *>(client_address_),
+        client_address_size_
     );
   }
-  return sqe_user_data.result;
+  return sqe_data_.cqe_res;
 }
 
 auto server_socket::accept(
     sockaddr_storage *client_address, socklen_t *client_address_size
-) -> class multishot_accept_guard & {
-  if (!fd.has_value()) {
+) -> multishot_accept_guard & {
+  if (!fd_.has_value()) {
     throw std::runtime_error("the file descriptor is invalid");
   }
 
-  if (!multishot_accept_guard.has_value()) {
-    multishot_accept_guard.emplace(
-        fd.value(), client_address, client_address_size
+  if (!multishot_accept_guard_.has_value()) {
+    multishot_accept_guard_.emplace(
+        fd_.value(), client_address, client_address_size
     );
   }
-  return multishot_accept_guard.value();
+  return multishot_accept_guard_.value();
 }
 
 client_socket::client_socket(const int fd) : file_descriptor{fd} {}
@@ -120,28 +122,28 @@ client_socket::client_socket(const int fd) : file_descriptor{fd} {}
 client_socket::recv_awaiter::recv_awaiter(
     const int fd, std::vector<char> &buffer
 )
-    : fd{fd}, buffer{buffer} {}
+    : fd_{fd}, buffer_{buffer} {}
 
 auto client_socket::recv_awaiter::await_ready() -> bool { return false; }
 
 auto client_socket::recv_awaiter::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
-  sqe_user_data.type = sqe_user_data::type::RECV;
-  sqe_user_data.coroutine = coroutine.address();
+  sqe_data_.type = sqe_data::type::RECV;
+  sqe_data_.coroutine = coroutine.address();
 
   io_uring_handler::get_instance().submit_recv_request(
-      fd, &sqe_user_data, buffer
+      fd_, &sqe_data_, buffer_
   );
 }
 
 auto client_socket::recv_awaiter::await_resume() -> size_t {
-  return sqe_user_data.result;
+  return sqe_data_.cqe_res;
 }
 
 auto client_socket::recv(std::vector<char> &buffer) -> recv_awaiter {
-  if (fd.has_value()) {
-    return recv_awaiter(fd.value(), buffer);
+  if (fd_.has_value()) {
+    return recv_awaiter(fd_.value(), buffer);
   }
   throw std::runtime_error("the file descriptor is invalid");
 }
@@ -149,28 +151,28 @@ auto client_socket::recv(std::vector<char> &buffer) -> recv_awaiter {
 client_socket::send_awaiter::send_awaiter(
     const int fd, const std::vector<char> &buffer
 )
-    : fd{fd}, buffer{buffer} {};
+    : fd_{fd}, buffer_{buffer} {};
 
 auto client_socket::send_awaiter::await_ready() -> bool { return false; }
 
 auto client_socket::send_awaiter::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
-  sqe_user_data.type = sqe_user_data::type::SEND;
-  sqe_user_data.coroutine = coroutine.address();
+  sqe_data_.type = sqe_data::type::SEND;
+  sqe_data_.coroutine = coroutine.address();
 
   io_uring_handler::get_instance().submit_send_request(
-      fd, &sqe_user_data, buffer
+      fd_, &sqe_data_, buffer_
   );
 }
 
 auto client_socket::send_awaiter::await_resume() -> size_t {
-  return sqe_user_data.result;
+  return sqe_data_.cqe_res;
 }
 
 auto client_socket::send(const std::vector<char> &buffer) -> send_awaiter {
-  if (fd.has_value()) {
-    return send_awaiter(fd.value(), buffer);
+  if (fd_.has_value()) {
+    return send_awaiter(fd_.value(), buffer);
   }
   throw std::runtime_error("the file descriptor is invalid");
 }

@@ -7,17 +7,17 @@
 namespace co_uring_http {
 file_descriptor::file_descriptor() {}
 
-file_descriptor::file_descriptor(const int fd) : fd{fd} {}
+file_descriptor::file_descriptor(const int fd) : fd_{fd} {}
 
 file_descriptor::~file_descriptor() {
-  if (fd.has_value()) {
-    close(fd.value());
+  if (fd_.has_value()) {
+    close(fd_.value());
   }
 }
 
 file_descriptor::file_descriptor(file_descriptor &&other) noexcept
-    : fd{other.fd} {
-  other.fd = std::nullopt;
+    : fd_{other.fd_} {
+  other.fd_ = std::nullopt;
 }
 
 auto file_descriptor::operator=(file_descriptor &&other) noexcept
@@ -25,15 +25,15 @@ auto file_descriptor::operator=(file_descriptor &&other) noexcept
   if (this == std::addressof(other)) {
     return *this;
   }
-  fd = std::exchange(other.fd, std::nullopt);
+  fd_ = std::exchange(other.fd_, std::nullopt);
   return *this;
 }
 
 auto file_descriptor::operator<=>(const file_descriptor &other) const
     -> std::strong_ordering {
-  return fd.value() <=> other.fd.value();
+  return fd_.value() <=> other.fd_.value();
 }
 
-auto file_descriptor::get_fd() const -> int { return fd.value(); }
+auto file_descriptor::get_fd() const -> int { return fd_.value(); }
 
 } // namespace co_uring_http

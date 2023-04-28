@@ -26,7 +26,7 @@ public:
   auto get_fd() const -> int;
 
 protected:
-  std::optional<int> fd;
+  std::optional<int> fd_;
 };
 } // namespace co_uring_http
 

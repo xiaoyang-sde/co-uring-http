@@ -4,14 +4,14 @@
 #include "socket.hpp"
 
 namespace co_uring_http {
-thread_worker::thread_worker(const char *port) : server_socket{} {
-  server_socket.bind(port);
-  server_socket.listen();
+thread_worker::thread_worker(const char *port) : server_socket_{} {
+  server_socket_.bind(port);
+  server_socket_.listen();
 }
 
 auto thread_worker::accept_loop() -> task<> {
   while (true) {
-    const int client_fd = co_await server_socket.accept();
+    const int client_fd = co_await server_socket_.accept();
     if (client_fd == -1) {
       continue;
     }
@@ -43,23 +43,22 @@ auto thread_worker::event_loop() -> task<> {
   while (true) {
     io_uring_handler.submit_and_wait(1);
     io_uring_handler.for_each_cqe([&io_uring_handler](io_uring_cqe *cqe) {
-      sqe_user_data *sqe_user_data =
-          reinterpret_cast<struct sqe_user_data *>(cqe->user_data);
+      sqe_data *sqe_data =
+          reinterpret_cast<struct sqe_data *>(io_uring_cqe_get_data(cqe));
 
-      switch (sqe_user_data->type) {
-      case sqe_user_data::ACCEPT:
-      case sqe_user_data::RECV:
-      case sqe_user_data::SEND: {
-        sqe_user_data->result = cqe->res;
-        sqe_user_data->cqe_flags = cqe->flags;
-        if (sqe_user_data->coroutine) {
-          std::coroutine_handle<>::from_address(sqe_user_data->coroutine)
-              .resume();
+      switch (sqe_data->type) {
+      case sqe_data::ACCEPT:
+      case sqe_data::RECV:
+      case sqe_data::SEND: {
+        sqe_data->cqe_res = cqe->res;
+        sqe_data->cqe_flags = cqe->flags;
+        if (sqe_data->coroutine) {
+          std::coroutine_handle<>::from_address(sqe_data->coroutine).resume();
         }
         break;
       }
-      case sqe_user_data::READ:
-      case sqe_user_data::WRITE:
+      case sqe_data::READ:
+      case sqe_data::WRITE:
         break;
       }
 
@@ -69,16 +68,16 @@ auto thread_worker::event_loop() -> task<> {
 }
 
 http_server::http_server(const size_t thread_count)
-    : thread_pool{thread_count} {}
+    : thread_pool_{thread_count} {}
 
 auto http_server::listen(const char *port) -> void {
   const std::function<task<>()> construct_task = [&]() -> task<> {
-    co_await thread_pool.schedule();
+    co_await thread_pool_.schedule();
     co_await thread_worker(port).event_loop();
   };
 
   std::list<task<>> task_list;
-  for (size_t _ = 0; _ < thread_pool.size(); ++_) {
+  for (size_t _ = 0; _ < thread_pool_.size(); ++_) {
     task_list.emplace_back(construct_task());
     task_list.back().resume();
   }

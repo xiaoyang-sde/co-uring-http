@@ -21,8 +21,8 @@ public:
     }
   }
 
-  auto get_value() const noexcept -> T {
-    return sync_wait_task<T>::coroutine.promise().get_value();
+  auto get_return_value() const noexcept -> T {
+    return sync_wait_task<T>::coroutine.promise().get_return_value();
   }
 
   auto wait() const noexcept -> void {
@@ -56,10 +56,10 @@ public:
 
   auto unhandled_exception() const noexcept -> void { std::terminate(); }
 
-  auto get_atomic_flag() noexcept -> std::atomic_flag & { return atomic_flag; }
+  auto get_atomic_flag() noexcept -> std::atomic_flag & { return atomic_flag_; }
 
 private:
-  std::atomic_flag atomic_flag;
+  std::atomic_flag atomic_flag_;
 };
 
 template <typename T>
@@ -71,13 +71,15 @@ public:
   }
 
   auto return_value(T &&return_value) noexcept -> void {
-    value = std::forward<T>(return_value);
+    return_value_ = std::forward<T>(return_value);
   }
 
-  constexpr auto get_value() const noexcept -> T { return value; }
+  constexpr auto get_return_value() const noexcept -> T {
+    return return_value_;
+  }
 
 private:
-  T value;
+  T return_value_;
 };
 
 template <>
@@ -91,21 +93,21 @@ public:
 
   auto return_void() noexcept -> void {}
 
-  constexpr auto get_value() const noexcept -> void {}
+  constexpr auto get_return_value() const noexcept -> void {}
 };
 
 template <typename T> auto sync_wait(task<T> &task) -> T {
   sync_wait_task<T> sync_wait_task_handle =
       ([&]() -> sync_wait_task<T> { co_return co_await task; })();
   sync_wait_task_handle.wait();
-  return sync_wait_task_handle.get_value();
+  return sync_wait_task_handle.get_return_value();
 }
 
 template <typename T> auto sync_wait(task<T> &&task) -> T {
   sync_wait_task<T> sync_wait_task_handle =
       ([&]() -> sync_wait_task<T> { co_return co_await task; })();
   sync_wait_task_handle.wait();
-  return sync_wait_task_handle.get_value();
+  return sync_wait_task_handle.get_return_value();
 }
 } // namespace co_uring_http
 

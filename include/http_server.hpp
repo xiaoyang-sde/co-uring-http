@@ -18,7 +18,7 @@ public:
   auto event_loop() -> task<>;
 
 private:
-  server_socket server_socket;
+  server_socket server_socket_;
 };
 
 class http_server {
@@ -28,7 +28,7 @@ public:
   auto listen(const char *port) -> void;
 
 private:
-  thread_pool thread_pool;
+  thread_pool thread_pool_;
 };
 } // namespace co_uring_http
 
