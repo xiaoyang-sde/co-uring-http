@@ -44,7 +44,8 @@ auto io_uring_handler::submit_and_wait(const int wait_nr) -> int {
 }
 
 auto io_uring_handler::submit_multishot_accept_request(
-    int fd, sqe_data *sqe_data, sockaddr *client_addr, socklen_t *client_len
+    const int fd, sqe_data *sqe_data, sockaddr *client_addr,
+    socklen_t *client_len
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
   io_uring_prep_multishot_accept(sqe, fd, client_addr, client_len, 0);
@@ -52,18 +53,20 @@ auto io_uring_handler::submit_multishot_accept_request(
 }
 
 auto io_uring_handler::submit_recv_request(
-    int fd, sqe_data *sqe_data, std::vector<char> &buffer
+    const int fd, sqe_data *sqe_data, std::vector<char> &buffer,
+    const size_t length
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
-  io_uring_prep_recv(sqe, fd, buffer.data(), buffer.size(), 0);
+  io_uring_prep_recv(sqe, fd, buffer.data(), length, 0);
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
 auto io_uring_handler::submit_send_request(
-    int fd, sqe_data *sqe_data, const std::vector<char> &buffer
+    const int fd, sqe_data *sqe_data, const std::vector<char> &buffer,
+    const size_t length
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
-  io_uring_prep_send(sqe, fd, buffer.data(), buffer.size(), 0);
+  io_uring_prep_send(sqe, fd, buffer.data(), length, 0);
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 

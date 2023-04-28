@@ -23,14 +23,15 @@ auto thread_worker::accept_loop() -> task<> {
 }
 
 auto thread_worker::handle_client(client_socket client_socket) -> task<> {
-  std::vector<char> read_buffer(1024);
-  co_await client_socket.recv(read_buffer);
-
-  std::string header = "HTTP/1.1 200 OK\r\nContent-Length: 4096\r\n\r\n";
-  std::string response = header + std::string(4096, ' ');
-
-  std::vector<char> write_buffer(response.cbegin(), response.cend());
-  co_await client_socket.send(write_buffer);
+  std::vector<char> buffer(1024);
+  while (true) {
+    const size_t read_length =
+        co_await client_socket.recv(buffer, buffer.size());
+    if (read_length == 0) {
+      break;
+    }
+    co_await client_socket.send(buffer, read_length);
+  }
 }
 
 auto thread_worker::event_loop() -> task<> {

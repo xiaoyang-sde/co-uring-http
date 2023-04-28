@@ -46,15 +46,18 @@ public:
   auto submit_and_wait(const int wait_nr) -> int;
 
   auto submit_multishot_accept_request(
-      int fd, sqe_data *sqe_data, sockaddr *client_addr, socklen_t *client_len
+      const int fd, sqe_data *sqe_data, sockaddr *client_addr,
+      socklen_t *client_len
   ) -> void;
 
-  auto
-  submit_recv_request(int fd, sqe_data *sqe_data, std::vector<char> &buffer)
-      -> void;
+  auto submit_recv_request(
+      const int fd, sqe_data *sqe_data, std::vector<char> &buffer,
+      const size_t length
+  ) -> void;
 
   auto submit_send_request(
-      int fd, sqe_data *sqe_data, const std::vector<char> &buffer
+      const int fd, sqe_data *sqe_data, const std::vector<char> &buffer,
+      const size_t length
   ) -> void;
 
   auto submit_cancel_request(sqe_data *sqe_data) -> void;

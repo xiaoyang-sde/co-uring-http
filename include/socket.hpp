@@ -52,7 +52,7 @@ public:
 
   class recv_awaiter {
   public:
-    recv_awaiter(const int fd, std::vector<char> &buffer);
+    recv_awaiter(const int fd, std::vector<char> &buffer, const size_t length);
 
     auto await_ready() -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
@@ -60,15 +60,18 @@ public:
 
   private:
     const int fd_;
+    const size_t length_;
     std::vector<char> &buffer_;
     sqe_data sqe_data_;
   };
 
-  auto recv(std::vector<char> &buffer) -> recv_awaiter;
+  auto recv(std::vector<char> &buffer, const size_t length) -> recv_awaiter;
 
   class send_awaiter {
   public:
-    send_awaiter(const int fd, const std::vector<char> &buffer);
+    send_awaiter(
+        const int fd, const std::vector<char> &buffer, const size_t length
+    );
 
     auto await_ready() -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
@@ -76,11 +79,13 @@ public:
 
   private:
     const int fd_;
+    const size_t length_;
     const std::vector<char> &buffer_;
     sqe_data sqe_data_;
   };
 
-  auto send(const std::vector<char> &buffer) -> send_awaiter;
+  auto send(const std::vector<char> &buffer, const size_t length)
+      -> send_awaiter;
 };
 
 } // namespace co_uring_http
