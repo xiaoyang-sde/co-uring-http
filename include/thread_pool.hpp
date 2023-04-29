@@ -3,9 +3,11 @@
 
 #include <condition_variable>
 #include <coroutine>
+#include <cstddef>
 #include <list>
 #include <mutex>
 #include <queue>
+#include <stop_token>
 #include <thread>
 
 namespace co_uring_http {

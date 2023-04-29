@@ -2,10 +2,15 @@
 #define IO_URING_HPP
 
 #include <liburing.h>
+#include <sys/socket.h>
 
-#include <coroutine>
+#include <cstddef>
 #include <functional>
 #include <span>
+#include <vector>
+
+struct io_uring_buf_ring;
+struct io_uring_cqe;
 
 namespace co_uring_http {
 struct sqe_data {

@@ -1,6 +1,18 @@
 #include "http_server.hpp"
 
+#include <liburing.h>
+#include <liburing/io_uring.h>
+
+#include <coroutine>
+#include <cstddef>
+#include <functional>
+#include <span>
+#include <utility>
+#include <vector>
+
 #include "buffer_ring.hpp"
+#include "constant.hpp"
+#include "io_uring.hpp"
 #include "socket.hpp"
 #include "sync_wait.hpp"
 

@@ -1,7 +1,9 @@
 #ifndef HTTP_SERVER_HPP
 #define HTTP_SERVER_HPP
 
-#include "io_uring.hpp"
+#include <cstddef>
+#include <thread>
+
 #include "socket.hpp"
 #include "task.hpp"
 #include "thread_pool.hpp"

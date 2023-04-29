@@ -1,14 +1,15 @@
 #ifndef BUFFER_RING_HPP
 #define BUFFER_RING_HPP
 
-#include <liburing.h>
+#include <liburing/io_uring.h>
 
 #include <bitset>
+#include <cstddef>
 #include <memory>
 #include <span>
+#include <vector>
 
 #include "constant.hpp"
-#include "io_uring.hpp"
 
 namespace co_uring_http {
 class buffer_ring {

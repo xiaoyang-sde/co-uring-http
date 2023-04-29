@@ -1,9 +1,13 @@
 #ifndef SOCKET_HPP
 #define SOCKET_HPP
 
+#include <sys/socket.h>
+
 #include <coroutine>
+#include <cstddef>
+#include <optional>
 #include <span>
-#include <vector>
+#include <tuple>
 
 #include "file_descriptor.hpp"
 #include "io_uring.hpp"

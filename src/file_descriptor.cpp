@@ -3,7 +3,7 @@
 #include <unistd.h>
 
 #include <optional>
-#include <stdexcept>
+#include <utility>
 
 namespace co_uring_http {
 file_descriptor::file_descriptor() = default;

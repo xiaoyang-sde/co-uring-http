@@ -1,6 +1,7 @@
 #include "io_uring.hpp"
 
 #include <liburing.h>
+#include <liburing/io_uring.h>
 
 #include <stdexcept>
 
