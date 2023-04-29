@@ -35,13 +35,17 @@ protected:
 
 template <typename T> class sync_wait_task_promise_base {
 public:
-  auto initial_suspend() const noexcept -> std::suspend_never { return {}; }
+  [[nodiscard]] auto initial_suspend() const noexcept -> std::suspend_never {
+    return {};
+  }
 
   class final_awaiter {
   public:
-    constexpr auto await_ready() const noexcept -> bool { return false; }
+    [[nodiscard]] constexpr auto await_ready() const noexcept -> bool {
+      return false;
+    }
 
-    constexpr auto await_resume() const noexcept -> void { return; }
+    constexpr auto await_resume() const noexcept -> void {}
 
     auto
     await_suspend(std::coroutine_handle<sync_wait_task_promise<T>> coroutine
@@ -52,7 +56,9 @@ public:
     }
   };
 
-  auto final_suspend() const noexcept -> final_awaiter { return {}; }
+  [[nodiscard]] auto final_suspend() const noexcept -> final_awaiter {
+    return {};
+  }
 
   auto unhandled_exception() const noexcept -> void { std::terminate(); }
 

@@ -22,12 +22,13 @@ auto io_uring_handler::get_instance() noexcept -> io_uring_handler & {
 
 auto io_uring_handler::get_uring() noexcept -> io_uring & { return io_uring_; }
 
-auto io_uring_handler::for_each_cqe(std::function<void(io_uring_cqe *)> functor)
-    -> void {
-  io_uring_cqe *cqe;
-  unsigned int head;
+auto io_uring_handler::for_each_cqe(
+    const std::function<void(io_uring_cqe *)> &lambda
+) -> void {
+  io_uring_cqe *cqe = nullptr;
+  unsigned int head = 0;
 
-  io_uring_for_each_cqe(&io_uring_, head, cqe) { functor(cqe); }
+  io_uring_for_each_cqe(&io_uring_, head, cqe) { lambda(cqe); }
 }
 
 auto io_uring_handler::cqe_seen(io_uring_cqe *cqe) -> void {
@@ -43,30 +44,32 @@ auto io_uring_handler::submit_and_wait(const int wait_nr) -> int {
 }
 
 auto io_uring_handler::submit_multishot_accept_request(
-    const int fd, sqe_data *sqe_data, sockaddr *client_addr,
+    const int raw_file_descriptor, sqe_data *sqe_data, sockaddr *client_addr,
     socklen_t *client_len
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
-  io_uring_prep_multishot_accept(sqe, fd, client_addr, client_len, 0);
+  io_uring_prep_multishot_accept(
+      sqe, raw_file_descriptor, client_addr, client_len, 0
+  );
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
 auto io_uring_handler::submit_recv_request(
-    const int fd, sqe_data *sqe_data, const size_t length
+    const int raw_file_descriptor, sqe_data *sqe_data, const size_t length
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
-  io_uring_prep_recv(sqe, fd, nullptr, length, 0);
+  io_uring_prep_recv(sqe, raw_file_descriptor, nullptr, length, 0);
   io_uring_sqe_set_flags(sqe, IOSQE_BUFFER_SELECT);
   io_uring_sqe_set_data(sqe, sqe_data);
   sqe->buf_group = BUFFER_GROUP_ID;
 }
 
 auto io_uring_handler::submit_send_request(
-    const int fd, sqe_data *sqe_data, const std::span<std::byte> &buffer,
-    const size_t length
+    const int raw_file_descriptor, sqe_data *sqe_data,
+    const std::span<std::byte> &buffer, const size_t length
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
-  io_uring_prep_send(sqe, fd, buffer.data(), length, 0);
+  io_uring_prep_send(sqe, raw_file_descriptor, buffer.data(), length, 0);
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 

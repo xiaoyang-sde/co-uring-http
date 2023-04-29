@@ -9,7 +9,7 @@
 namespace co_uring_http {
 class thread_worker {
 public:
-  thread_worker(const char *port);
+  explicit thread_worker(const char *port);
 
   auto accept_loop() -> task<>;
 
@@ -23,7 +23,9 @@ private:
 
 class http_server {
 public:
-  http_server(const size_t thread_count = std::thread::hardware_concurrency());
+  explicit http_server(
+      size_t thread_count = std::thread::hardware_concurrency()
+  );
 
   auto listen(const char *port) -> void;
 

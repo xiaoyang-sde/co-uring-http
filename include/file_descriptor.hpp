@@ -9,7 +9,7 @@ class file_descriptor {
 public:
   file_descriptor();
 
-  explicit file_descriptor(const int fd);
+  explicit file_descriptor(int raw_file_descriptor);
 
   ~file_descriptor();
 
@@ -23,10 +23,10 @@ public:
 
   auto operator<=>(const file_descriptor &other) const -> std::strong_ordering;
 
-  auto get_fd() const -> int;
+  [[nodiscard]] auto get_raw_file_descriptor() const -> int;
 
 protected:
-  std::optional<int> fd_;
+  std::optional<int> raw_file_descriptor_;
 };
 } // namespace co_uring_http
 

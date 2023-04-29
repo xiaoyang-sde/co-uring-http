@@ -11,14 +11,16 @@
 namespace co_uring_http {
 class thread_pool {
 public:
-  explicit thread_pool(const std::size_t thread_count);
+  explicit thread_pool(std::size_t thread_count);
   ~thread_pool();
 
   class schedule_awaiter {
   public:
-    schedule_awaiter(thread_pool &thread_pool);
+    explicit schedule_awaiter(thread_pool &thread_pool);
 
-    constexpr auto await_ready() const noexcept -> bool { return false; }
+    [[nodiscard]] constexpr auto await_ready() noexcept -> bool {
+      return false;
+    }
     constexpr auto await_resume() const noexcept -> void {}
     auto await_suspend(std::coroutine_handle<> handle) const noexcept -> void;
 
@@ -27,7 +29,7 @@ public:
   };
 
   auto schedule() -> schedule_awaiter;
-  auto size() const noexcept -> size_t;
+  [[nodiscard]] auto size() const noexcept -> size_t;
 
 private:
   std::stop_source stop_source_;

@@ -31,24 +31,24 @@ public:
 
   auto get_uring() noexcept -> io_uring &;
 
-  auto for_each_cqe(std::function<void(io_uring_cqe *)> functor) -> void;
+  auto for_each_cqe(const std::function<void(io_uring_cqe *)> &lambda) -> void;
 
   auto cqe_seen(io_uring_cqe *cqe) -> void;
 
-  auto submit_and_wait(const int wait_nr) -> int;
+  auto submit_and_wait(int wait_nr) -> int;
 
   auto submit_multishot_accept_request(
-      const int fd, sqe_data *sqe_data, sockaddr *client_addr,
+      int raw_file_descriptor, sqe_data *sqe_data, sockaddr *client_addr,
       socklen_t *client_len
   ) -> void;
 
-  auto
-  submit_recv_request(const int fd, sqe_data *sqe_data, const size_t length)
-      -> void;
+  auto submit_recv_request(
+      int raw_file_descriptor, sqe_data *sqe_data, size_t length
+  ) -> void;
 
   auto submit_send_request(
-      const int fd, sqe_data *sqe_data, const std::span<std::byte> &buffer,
-      const size_t length
+      int raw_file_descriptor, sqe_data *sqe_data,
+      const std::span<std::byte> &buffer, size_t length
   ) -> void;
 
   auto submit_cancel_request(sqe_data *sqe_data) -> void;
@@ -56,12 +56,12 @@ public:
   auto setup_buffer_ring(
       io_uring_buf_ring *buffer_ring,
       std::span<std::vector<std::byte>> buffer_list,
-      const unsigned int buffer_ring_size
+      unsigned int buffer_ring_size
   ) -> void;
 
   auto add_buffer(
       io_uring_buf_ring *buffer_ring, std::span<std::byte> buffer,
-      const unsigned int buffer_id, const unsigned int buffer_ring_size
+      unsigned int buffer_id, unsigned int buffer_ring_size
   ) -> void;
 
 private:

@@ -22,9 +22,9 @@ public:
       const unsigned int buffer_ring_size, const size_t buffer_size
   ) -> void {
     const size_t ring_entries_size = buffer_ring_size * sizeof(io_uring_buf);
-    const size_t page_size = sysconf(_SC_PAGESIZE);
+    const size_t page_alignment = sysconf(_SC_PAGESIZE);
     void *buffer_ring = nullptr;
-    posix_memalign(&buffer_ring, page_size, ring_entries_size);
+    posix_memalign(&buffer_ring, page_alignment, ring_entries_size);
     buffer_ring_.reset(reinterpret_cast<io_uring_buf_ring *>(buffer_ring));
 
     buffer_list_.reserve(buffer_ring_size);
@@ -40,7 +40,7 @@ public:
   auto borrow_buffer(const unsigned int buffer_id, const size_t size)
       -> std::span<std::byte> {
     borrowed_buffer_set_[buffer_id] = true;
-    return std::span(buffer_list_[buffer_id].data(), size);
+    return {buffer_list_[buffer_id].data(), size};
   }
 
   auto return_buffer(const unsigned int buffer_id) -> void {

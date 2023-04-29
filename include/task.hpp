@@ -50,7 +50,7 @@ public:
     explicit task_awaiter(std::coroutine_handle<task_promise<T>> coroutine)
         : coroutine_{coroutine} {}
 
-    constexpr auto await_ready() const noexcept -> bool {
+    [[nodiscard]] constexpr auto await_ready() const noexcept -> bool {
       return coroutine_ == nullptr || coroutine_.done();
     }
 
@@ -58,8 +58,8 @@ public:
       return coroutine_.promise().get_return_value();
     }
 
-    auto await_suspend(std::coroutine_handle<> calling_coroutine) const noexcept
-        -> std::coroutine_handle<> {
+    [[nodiscard]] auto await_suspend(std::coroutine_handle<> calling_coroutine
+    ) const noexcept -> std::coroutine_handle<> {
       coroutine_.promise().set_calling_coroutine(calling_coroutine);
       return coroutine_;
     }
@@ -92,14 +92,17 @@ template <typename T> class task_promise_base {
 public:
   class final_awaiter {
   public:
-    final_awaiter(std::coroutine_handle<> detached_coroutine)
+    explicit final_awaiter(std::coroutine_handle<> detached_coroutine)
         : detached_coroutine_{detached_coroutine} {};
 
-    constexpr auto await_ready() const noexcept -> bool { return false; }
+    [[nodiscard]] constexpr auto await_ready() const noexcept -> bool {
+      return false;
+    }
 
-    constexpr auto await_resume() const noexcept -> void { return; }
+    constexpr auto await_resume() const noexcept -> void {}
 
-    auto await_suspend(std::coroutine_handle<task_promise<T>> coroutine
+    [[nodiscard]] auto
+    await_suspend(std::coroutine_handle<task_promise<T>> coroutine
     ) const noexcept -> std::coroutine_handle<> {
       if (coroutine.promise().calling_coroutine_) {
         return coroutine.promise().calling_coroutine_;
@@ -117,7 +120,7 @@ public:
   auto initial_suspend() noexcept -> std::suspend_always { return {}; }
 
   auto final_suspend() noexcept -> final_awaiter {
-    return {detached_coroutine_};
+    return final_awaiter{detached_coroutine_};
   }
 
   auto unhandled_exception() -> void { std::terminate(); }

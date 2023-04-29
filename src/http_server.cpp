@@ -7,7 +7,7 @@
 
 namespace co_uring_http {
 
-thread_worker::thread_worker(const char *port) : server_socket_{} {
+thread_worker::thread_worker(const char *port) {
   buffer_ring::get_instance().register_buffer_ring(
       BUFFER_RING_SIZE, BUFFER_SIZE
   );
@@ -18,12 +18,12 @@ thread_worker::thread_worker(const char *port) : server_socket_{} {
 
 auto thread_worker::accept_loop() -> task<> {
   while (true) {
-    const int client_fd = co_await server_socket_.accept();
-    if (client_fd == -1) {
+    const int raw_file_descriptor = co_await server_socket_.accept();
+    if (raw_file_descriptor == -1) {
       continue;
     }
 
-    task<> task = handle_client(client_socket(client_fd));
+    task<> task = handle_client(client_socket(raw_file_descriptor));
     task.resume();
     task.detach();
   }
@@ -55,12 +55,12 @@ auto thread_worker::event_loop() -> task<> {
   while (true) {
     io_uring_handler.submit_and_wait(1);
     io_uring_handler.for_each_cqe([&io_uring_handler](io_uring_cqe *cqe) {
-      sqe_data *sqe_data =
+      auto *sqe_data =
           reinterpret_cast<struct sqe_data *>(io_uring_cqe_get_data(cqe));
 
       sqe_data->cqe_res = cqe->res;
       sqe_data->cqe_flags = cqe->flags;
-      if (sqe_data->coroutine) {
+      if (sqe_data->coroutine != nullptr) {
         std::coroutine_handle<>::from_address(sqe_data->coroutine).resume();
       }
 
