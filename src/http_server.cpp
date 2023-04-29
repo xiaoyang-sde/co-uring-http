@@ -34,7 +34,8 @@ auto thread_worker::accept_loop() -> task<> {
 auto thread_worker::handle_client(client_socket client_socket) -> task<> {
   buffer_ring &buffer_ring = buffer_ring::get_instance();
   while (true) {
-    const auto [buffer_id, buffer_size] = co_await client_socket.recv();
+    const auto [buffer_id, buffer_size] =
+        co_await client_socket.recv(BUFFER_SIZE);
     if (buffer_size == 0) {
       break;
     }

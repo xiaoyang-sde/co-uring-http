@@ -120,7 +120,8 @@ auto server_socket::accept(
 
 client_socket::client_socket(const int fd) : file_descriptor{fd} {}
 
-client_socket::recv_awaiter::recv_awaiter(const int fd) : fd_{fd} {}
+client_socket::recv_awaiter::recv_awaiter(const int fd, const size_t length)
+    : fd_{fd}, length_{length} {}
 
 auto client_socket::recv_awaiter::await_ready() -> bool { return false; }
 
@@ -128,8 +129,9 @@ auto client_socket::recv_awaiter::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
   sqe_data_.coroutine = coroutine.address();
-
-  io_uring_handler::get_instance().submit_recv_request(fd_, &sqe_data_);
+  io_uring_handler::get_instance().submit_recv_request(
+      fd_, &sqe_data_, length_
+  );
 }
 
 auto client_socket::recv_awaiter::await_resume()
@@ -142,9 +144,9 @@ auto client_socket::recv_awaiter::await_resume()
   return {};
 }
 
-auto client_socket::recv() -> recv_awaiter {
+auto client_socket::recv(const size_t length) -> recv_awaiter {
   if (fd_.has_value()) {
-    return recv_awaiter(fd_.value());
+    return recv_awaiter(fd_.value(), length);
   }
   throw std::runtime_error("the file descriptor is invalid");
 }

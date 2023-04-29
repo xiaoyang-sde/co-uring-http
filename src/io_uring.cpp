@@ -53,10 +53,11 @@ auto io_uring_handler::submit_multishot_accept_request(
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
-auto io_uring_handler::submit_recv_request(const int fd, sqe_data *sqe_data)
-    -> void {
+auto io_uring_handler::submit_recv_request(
+    const int fd, sqe_data *sqe_data, const size_t length
+) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
-  io_uring_prep_recv(sqe, fd, nullptr, 1024, 0);
+  io_uring_prep_recv(sqe, fd, nullptr, length, 0);
   io_uring_sqe_set_flags(sqe, IOSQE_BUFFER_SELECT);
   io_uring_sqe_set_data(sqe, sqe_data);
   sqe->buf_group = BUFFER_GROUP_ID;

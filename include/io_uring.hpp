@@ -42,7 +42,9 @@ public:
       socklen_t *client_len
   ) -> void;
 
-  auto submit_recv_request(const int fd, sqe_data *sqe_data) -> void;
+  auto
+  submit_recv_request(const int fd, sqe_data *sqe_data, const size_t length)
+      -> void;
 
   auto submit_send_request(
       const int fd, sqe_data *sqe_data, const std::span<std::byte> &buffer,
