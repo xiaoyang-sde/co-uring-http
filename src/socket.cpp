@@ -49,7 +49,7 @@ auto server_socket::bind(const char *port) -> void {
   freeaddrinfo(socket_address);
 }
 
-auto server_socket::listen() -> void {
+auto server_socket::listen() const -> void {
   if (!raw_file_descriptor_.has_value()) {
     throw std::runtime_error("the file descriptor is invalid");
   }
@@ -69,7 +69,7 @@ server_socket::multishot_accept_guard::~multishot_accept_guard() {
   io_uring_handler::get_instance().submit_cancel_request(&sqe_data_);
 }
 
-auto server_socket::multishot_accept_guard::await_ready() -> bool { return false; }
+auto server_socket::multishot_accept_guard::await_ready() const -> bool { return false; }
 
 auto server_socket::multishot_accept_guard::await_suspend(std::coroutine_handle<> coroutine)
     -> void {
@@ -114,7 +114,7 @@ client_socket::client_socket(const int raw_file_descriptor)
 client_socket::recv_awaiter::recv_awaiter(const int raw_file_descriptor, const size_t length)
     : raw_file_descriptor_{raw_file_descriptor}, length_{length} {}
 
-auto client_socket::recv_awaiter::await_ready() -> bool { return false; }
+auto client_socket::recv_awaiter::await_ready() const -> bool { return false; }
 
 auto client_socket::recv_awaiter::await_suspend(std::coroutine_handle<> coroutine) -> void {
   sqe_data_.coroutine = coroutine.address();
@@ -141,7 +141,7 @@ client_socket::send_awaiter::send_awaiter(
 )
     : raw_file_descriptor_{raw_file_descriptor}, length_{length}, buffer_{buffer} {};
 
-auto client_socket::send_awaiter::await_ready() -> bool { return false; }
+auto client_socket::send_awaiter::await_ready() const -> bool { return false; }
 
 auto client_socket::send_awaiter::await_suspend(std::coroutine_handle<> coroutine) -> void {
   sqe_data_.coroutine = coroutine.address();

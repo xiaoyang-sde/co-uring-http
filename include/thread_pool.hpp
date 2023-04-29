@@ -18,15 +18,15 @@ public:
   public:
     explicit schedule_awaiter(thread_pool &thread_pool);
 
-    [[nodiscard]] constexpr auto await_ready() noexcept -> bool { return false; }
-    constexpr auto await_resume() const noexcept -> void {}
+    [[nodiscard]] auto await_ready() const noexcept -> bool;
+    auto await_resume() const noexcept -> void;
     auto await_suspend(std::coroutine_handle<> handle) const noexcept -> void;
 
   private:
     thread_pool &thread_pool_;
   };
 
-  auto schedule() -> schedule_awaiter;
+  [[nodiscard]] auto schedule() -> schedule_awaiter;
   [[nodiscard]] auto size() const noexcept -> size_t;
 
 private:

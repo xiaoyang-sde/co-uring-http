@@ -11,7 +11,7 @@ class thread_worker {
 public:
   explicit thread_worker(const char *port);
 
-  auto accept_loop() -> task<>;
+  auto accept_client() -> task<>;
 
   auto handle_client(client_socket client_socket) -> task<>;
 

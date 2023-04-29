@@ -1,6 +1,7 @@
 #include "http_server.hpp"
 #include "buffer_ring.hpp"
 #include "socket.hpp"
+#include "sync_wait.hpp"
 
 namespace co_uring_http {
 thread_worker::thread_worker(const char *port) {
@@ -10,16 +11,16 @@ thread_worker::thread_worker(const char *port) {
   server_socket_.listen();
 }
 
-auto thread_worker::accept_loop() -> task<> {
+auto thread_worker::accept_client() -> task<> {
   while (true) {
     const int raw_file_descriptor = co_await server_socket_.accept();
     if (raw_file_descriptor == -1) {
       continue;
     }
 
-    task<> task = handle_client(client_socket(raw_file_descriptor));
-    task.resume();
-    task.detach();
+    task<> handle_client_task = handle_client(client_socket(raw_file_descriptor));
+    handle_client_task.resume();
+    handle_client_task.detach();
   }
 }
 
@@ -40,9 +41,9 @@ auto thread_worker::handle_client(client_socket client_socket) -> task<> {
 auto thread_worker::event_loop() -> task<> {
   io_uring_handler &io_uring_handler = io_uring_handler::get_instance();
 
-  task<> task = accept_loop();
-  task.resume();
-  task.detach();
+  task<> accept_client_task = accept_client();
+  accept_client_task.resume();
+  accept_client_task.detach();
 
   while (true) {
     io_uring_handler.submit_and_wait(1);
@@ -68,10 +69,11 @@ auto http_server::listen(const char *port) -> void {
     co_await thread_worker(port).event_loop();
   };
 
-  std::list<task<>> task_list;
+  std::vector<task<>> thread_worker_list;
   for (size_t _ = 0; _ < thread_pool_.size(); ++_) {
-    task_list.emplace_back(construct_task());
-    task_list.back().resume();
+    task<> thread_worker = construct_task();
+    thread_worker.resume();
+    thread_worker_list.emplace_back(std::move(thread_worker));
   }
 
   while (true) {

@@ -12,13 +12,17 @@ thread_pool::~thread_pool() {
   condition_variable_.notify_all();
 }
 
-thread_pool::schedule_awaiter::schedule_awaiter(class thread_pool &thread_pool)
+thread_pool::schedule_awaiter::schedule_awaiter(thread_pool &thread_pool)
     : thread_pool_{thread_pool} {}
 
 auto thread_pool::schedule_awaiter::await_suspend(std::coroutine_handle<> handle) const noexcept
     -> void {
   thread_pool_.enqueue(handle);
 }
+
+auto thread_pool::schedule_awaiter::await_ready() const noexcept -> bool { return false; }
+
+auto thread_pool::schedule_awaiter::await_resume() const noexcept -> void {}
 
 auto thread_pool::schedule() -> schedule_awaiter { return schedule_awaiter{*this}; }
 

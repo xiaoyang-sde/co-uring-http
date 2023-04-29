@@ -16,7 +16,7 @@ public:
 
   auto bind(const char *port) -> void;
 
-  auto listen() -> void;
+  auto listen() const -> void;
 
   class multishot_accept_guard {
   public:
@@ -25,7 +25,7 @@ public:
     );
     ~multishot_accept_guard();
 
-    auto await_ready() -> bool;
+    [[nodiscard]] auto await_ready() const -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
     auto await_resume() -> int;
 
@@ -52,7 +52,7 @@ public:
   public:
     recv_awaiter(int raw_file_descriptor, size_t length);
 
-    auto await_ready() -> bool;
+    [[nodiscard]] auto await_ready() const -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
     auto await_resume() -> std::tuple<unsigned int, size_t>;
 
@@ -68,7 +68,7 @@ public:
   public:
     send_awaiter(int raw_file_descriptor, const std::span<std::byte> &buffer, size_t length);
 
-    auto await_ready() -> bool;
+    [[nodiscard]] auto await_ready() const -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
     [[nodiscard]] auto await_resume() const -> size_t;
 

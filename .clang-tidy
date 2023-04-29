@@ -2,6 +2,6 @@ Checks:
   clang-analyzer-*,
   google-*,
   modernize-*,
-  performance-*,
+  performance-*
 
 HeaderFilterRegex: '/src/include'

@@ -1,6 +1,9 @@
 #ifndef SYNC_WAIT_HPP
 #define SYNC_WAIT_HPP
 
+#include <algorithm>
+#include <vector>
+
 #include <task.hpp>
 
 namespace co_uring_http {
@@ -12,22 +15,22 @@ public:
 
   explicit sync_wait_task(std::coroutine_handle<sync_wait_task_promise<T>> coroutine_handle
   ) noexcept
-      : coroutine(coroutine_handle) {}
+      : coroutine_(coroutine_handle) {}
 
   ~sync_wait_task() {
-    if (coroutine) {
-      coroutine.destroy();
+    if (coroutine_) {
+      coroutine_.destroy();
     }
   }
 
-  auto get_return_value() const noexcept -> T {
-    return sync_wait_task<T>::coroutine.promise().get_return_value();
+  [[nodiscard]] auto get_return_value() const noexcept -> T {
+    return coroutine_.promise().get_return_value();
   }
 
-  auto wait() const noexcept -> void { coroutine.promise().get_atomic_flag().wait(false); }
+  auto wait() const noexcept -> void { coroutine_.promise().get_atomic_flag().wait(false); }
 
-protected:
-  std::coroutine_handle<sync_wait_task_promise<T>> coroutine;
+private:
+  std::coroutine_handle<sync_wait_task_promise<T>> coroutine_;
 };
 
 template <typename T> class sync_wait_task_promise_base {
@@ -36,9 +39,9 @@ public:
 
   class final_awaiter {
   public:
-    [[nodiscard]] constexpr auto await_ready() const noexcept -> bool { return false; }
+    [[nodiscard]] auto await_ready() const noexcept -> bool { return false; }
 
-    constexpr auto await_resume() const noexcept -> void {}
+    auto await_resume() const noexcept -> void {}
 
     auto await_suspend(std::coroutine_handle<sync_wait_task_promise<T>> coroutine) const noexcept
         -> void {
@@ -68,7 +71,7 @@ public:
     return_value_ = std::forward<T>(return_value);
   }
 
-  constexpr auto get_return_value() const noexcept -> T { return return_value_; }
+  [[nodiscard]] auto get_return_value() const noexcept -> T { return return_value_; }
 
 private:
   T return_value_;
@@ -81,22 +84,24 @@ public:
   }
 
   auto return_void() noexcept -> void {}
-
-  constexpr auto get_return_value() const noexcept -> void {}
 };
 
 template <typename T> auto sync_wait(task<T> &task) -> T {
-  sync_wait_task<T> sync_wait_task_handle =
-      ([&]() -> sync_wait_task<T> { co_return co_await task; })();
+  auto sync_wait_task_handle = ([&]() -> sync_wait_task<T> { co_return co_await task; })();
   sync_wait_task_handle.wait();
-  return sync_wait_task_handle.get_return_value();
+
+  if constexpr (!std::is_same_v<T, void>) {
+    return sync_wait_task_handle.get_return_value();
+  }
 }
 
 template <typename T> auto sync_wait(task<T> &&task) -> T {
-  sync_wait_task<T> sync_wait_task_handle =
-      ([&]() -> sync_wait_task<T> { co_return co_await task; })();
+  auto sync_wait_task_handle = ([&]() -> sync_wait_task<T> { co_return co_await task; })();
   sync_wait_task_handle.wait();
-  return sync_wait_task_handle.get_return_value();
+
+  if constexpr (!std::is_same_v<T, void>) {
+    return sync_wait_task_handle.get_return_value();
+  }
 }
 } // namespace co_uring_http
 

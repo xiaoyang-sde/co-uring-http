@@ -48,12 +48,14 @@ public:
     explicit task_awaiter(std::coroutine_handle<task_promise<T>> coroutine)
         : coroutine_{coroutine} {}
 
-    [[nodiscard]] constexpr auto await_ready() const noexcept -> bool {
+    [[nodiscard]] auto await_ready() const noexcept -> bool {
       return coroutine_ == nullptr || coroutine_.done();
     }
 
-    constexpr auto await_resume() const noexcept -> T {
-      return coroutine_.promise().get_return_value();
+    [[nodiscard]] auto await_resume() const noexcept -> T {
+      if constexpr (!std::is_same_v<T, void>) {
+        return coroutine_.promise().get_return_value();
+      }
     }
 
     [[nodiscard]] auto await_suspend(std::coroutine_handle<> calling_coroutine) const noexcept
@@ -68,7 +70,7 @@ public:
 
   auto operator co_await() noexcept -> task_awaiter { return task_awaiter(coroutine_); }
 
-  auto resume() noexcept -> void {
+  auto resume() const noexcept -> void {
     if (coroutine_ == nullptr || coroutine_.done()) {
       return;
     }
@@ -91,9 +93,9 @@ public:
     explicit final_awaiter(std::coroutine_handle<> detached_coroutine)
         : detached_coroutine_{detached_coroutine} {};
 
-    [[nodiscard]] constexpr auto await_ready() const noexcept -> bool { return false; }
+    [[nodiscard]] auto await_ready() const noexcept -> bool { return false; }
 
-    constexpr auto await_resume() const noexcept -> void {}
+    auto await_resume() const noexcept -> void {}
 
     [[nodiscard]] auto await_suspend(std::coroutine_handle<task_promise<T>> coroutine
     ) const noexcept -> std::coroutine_handle<> {
@@ -110,17 +112,19 @@ public:
     std::coroutine_handle<> detached_coroutine_;
   };
 
-  auto initial_suspend() noexcept -> std::suspend_always { return {}; }
+  [[nodiscard]] auto initial_suspend() const noexcept -> std::suspend_always { return {}; }
 
-  auto final_suspend() noexcept -> final_awaiter { return final_awaiter{detached_coroutine_}; }
+  [[nodiscard]] auto final_suspend() const noexcept -> final_awaiter {
+    return final_awaiter{detached_coroutine_};
+  }
 
-  auto unhandled_exception() -> void { std::terminate(); }
+  auto unhandled_exception() const noexcept -> void { std::terminate(); }
 
-  auto set_calling_coroutine(std::coroutine_handle<> coroutine) -> void {
+  auto set_calling_coroutine(std::coroutine_handle<> coroutine) noexcept -> void {
     calling_coroutine_ = coroutine;
   }
 
-  auto set_detached_coroutine(std::coroutine_handle<> coroutine) -> void {
+  auto set_detached_coroutine(std::coroutine_handle<> coroutine) noexcept -> void {
     detached_coroutine_ = coroutine;
   }
 
@@ -139,7 +143,7 @@ public:
     return_value_ = std::forward<T>(return_value);
   }
 
-  constexpr auto get_return_value() const noexcept -> T { return return_value_; }
+  [[nodiscard]] auto get_return_value() const noexcept -> T { return return_value_; }
 
 private:
   T return_value_;
@@ -150,9 +154,8 @@ public:
   auto get_return_object() noexcept -> task<void> {
     return task<void>{std::coroutine_handle<task_promise>::from_promise(*this)};
   };
-  auto return_void() noexcept -> void {}
 
-  constexpr auto get_return_value() const noexcept -> void {}
+  auto return_void() const noexcept -> void {}
 };
 } // namespace co_uring_http
 
