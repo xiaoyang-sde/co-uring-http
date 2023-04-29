@@ -7,11 +7,10 @@
 #include <optional>
 #include <span>
 
+#include "constant.hpp"
 #include "io_uring.hpp"
 
 namespace co_uring_http {
-constexpr unsigned int MAX_BUFFER_RING_SIZE = 2 << 15;
-
 class buffer_ring {
 public:
   static auto get_instance() noexcept -> buffer_ring & {

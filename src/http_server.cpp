@@ -6,8 +6,6 @@
 #include "socket.hpp"
 
 namespace co_uring_http {
-constexpr unsigned int BUFFER_RING_SIZE = 1024;
-constexpr size_t BUFFER_SIZE = 1024;
 
 thread_worker::thread_worker(const char *port) : server_socket_{} {
   buffer_ring::get_instance().register_buffer_ring(

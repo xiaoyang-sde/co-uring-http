@@ -1,12 +1,10 @@
-#include "io_uring.hpp"
 #include <liburing.h>
 #include <stdexcept>
 
-constexpr size_t IO_URING_QUEUE_SIZE = 2048;
-constexpr unsigned int BUFFER_GROUP_ID = 0;
+#include "constant.hpp"
+#include "io_uring.hpp"
 
 namespace co_uring_http {
-
 io_uring_handler::io_uring_handler() {
   if (const int result =
           io_uring_queue_init(IO_URING_QUEUE_SIZE, &io_uring_, 0);

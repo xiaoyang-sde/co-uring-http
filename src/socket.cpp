@@ -6,10 +6,7 @@
 
 #include "buffer_ring.hpp"
 #include "file_descriptor.hpp"
-#include "io_uring.hpp"
 #include "socket.hpp"
-
-constexpr int LISTEN_QUEUE_SIZE = 512;
 
 namespace co_uring_http {
 server_socket::server_socket() {}
@@ -59,7 +56,7 @@ auto server_socket::listen() -> void {
     throw std::runtime_error("the file descriptor is invalid");
   }
 
-  if (::listen(fd_.value(), LISTEN_QUEUE_SIZE) == -1) {
+  if (::listen(fd_.value(), SOCKET_LISTEN_QUEUE_SIZE) == -1) {
     throw std::runtime_error("failed to invoke 'listen'");
   }
 }
