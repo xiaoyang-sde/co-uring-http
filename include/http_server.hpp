@@ -23,9 +23,7 @@ private:
 
 class http_server {
 public:
-  explicit http_server(
-      size_t thread_count = std::thread::hardware_concurrency()
-  );
+  explicit http_server(size_t thread_count = std::thread::hardware_concurrency());
 
   auto listen(const char *port) -> void;
 

@@ -21,18 +21,15 @@ file_descriptor::file_descriptor(file_descriptor &&other) noexcept
   other.raw_file_descriptor_ = std::nullopt;
 }
 
-auto file_descriptor::operator=(file_descriptor &&other) noexcept
-    -> file_descriptor & {
+auto file_descriptor::operator=(file_descriptor &&other) noexcept -> file_descriptor & {
   if (this == std::addressof(other)) {
     return *this;
   }
-  raw_file_descriptor_ =
-      std::exchange(other.raw_file_descriptor_, std::nullopt);
+  raw_file_descriptor_ = std::exchange(other.raw_file_descriptor_, std::nullopt);
   return *this;
 }
 
-auto file_descriptor::operator<=>(const file_descriptor &other) const
-    -> std::strong_ordering {
+auto file_descriptor::operator<=>(const file_descriptor &other) const -> std::strong_ordering {
   return raw_file_descriptor_.value() <=> other.raw_file_descriptor_.value();
 }
 

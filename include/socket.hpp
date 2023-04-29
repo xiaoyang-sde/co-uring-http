@@ -21,8 +21,7 @@ public:
   class multishot_accept_guard {
   public:
     multishot_accept_guard(
-        int raw_file_descriptor, sockaddr_storage *client_address,
-        socklen_t *client_address_size
+        int raw_file_descriptor, sockaddr_storage *client_address, socklen_t *client_address_size
     );
     ~multishot_accept_guard();
 
@@ -38,10 +37,8 @@ public:
     sqe_data sqe_data_;
   };
 
-  auto accept(
-      sockaddr_storage *client_address = nullptr,
-      socklen_t *client_address_size = nullptr
-  ) -> multishot_accept_guard &;
+  auto accept(sockaddr_storage *client_address = nullptr, socklen_t *client_address_size = nullptr)
+      -> multishot_accept_guard &;
 
 private:
   std::optional<multishot_accept_guard> multishot_accept_guard_;
@@ -69,10 +66,7 @@ public:
 
   class send_awaiter {
   public:
-    send_awaiter(
-        int raw_file_descriptor, const std::span<std::byte> &buffer,
-        size_t length
-    );
+    send_awaiter(int raw_file_descriptor, const std::span<std::byte> &buffer, size_t length);
 
     auto await_ready() -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;

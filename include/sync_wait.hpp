@@ -10,8 +10,7 @@ template <typename T> class [[nodiscard]] sync_wait_task {
 public:
   using promise_type = sync_wait_task_promise<T>;
 
-  explicit sync_wait_task(
-      std::coroutine_handle<sync_wait_task_promise<T>> coroutine_handle
+  explicit sync_wait_task(std::coroutine_handle<sync_wait_task_promise<T>> coroutine_handle
   ) noexcept
       : coroutine(coroutine_handle) {}
 
@@ -25,9 +24,7 @@ public:
     return sync_wait_task<T>::coroutine.promise().get_return_value();
   }
 
-  auto wait() const noexcept -> void {
-    coroutine.promise().get_atomic_flag().wait(false);
-  }
+  auto wait() const noexcept -> void { coroutine.promise().get_atomic_flag().wait(false); }
 
 protected:
   std::coroutine_handle<sync_wait_task_promise<T>> coroutine;
@@ -35,30 +32,23 @@ protected:
 
 template <typename T> class sync_wait_task_promise_base {
 public:
-  [[nodiscard]] auto initial_suspend() const noexcept -> std::suspend_never {
-    return {};
-  }
+  [[nodiscard]] auto initial_suspend() const noexcept -> std::suspend_never { return {}; }
 
   class final_awaiter {
   public:
-    [[nodiscard]] constexpr auto await_ready() const noexcept -> bool {
-      return false;
-    }
+    [[nodiscard]] constexpr auto await_ready() const noexcept -> bool { return false; }
 
     constexpr auto await_resume() const noexcept -> void {}
 
-    auto
-    await_suspend(std::coroutine_handle<sync_wait_task_promise<T>> coroutine
-    ) const noexcept -> void {
+    auto await_suspend(std::coroutine_handle<sync_wait_task_promise<T>> coroutine) const noexcept
+        -> void {
       std::atomic_flag &atomic_flag = coroutine.promise().get_atomic_flag();
       atomic_flag.test_and_set();
       atomic_flag.notify_all();
     }
   };
 
-  [[nodiscard]] auto final_suspend() const noexcept -> final_awaiter {
-    return {};
-  }
+  [[nodiscard]] auto final_suspend() const noexcept -> final_awaiter { return {}; }
 
   auto unhandled_exception() const noexcept -> void { std::terminate(); }
 
@@ -68,33 +58,26 @@ private:
   std::atomic_flag atomic_flag_;
 };
 
-template <typename T>
-class sync_wait_task_promise final : public sync_wait_task_promise_base<T> {
+template <typename T> class sync_wait_task_promise final : public sync_wait_task_promise_base<T> {
 public:
   auto get_return_object() noexcept -> sync_wait_task<T> {
-    return sync_wait_task<T>{
-        std::coroutine_handle<sync_wait_task_promise<T>>::from_promise(*this)};
+    return sync_wait_task<T>{std::coroutine_handle<sync_wait_task_promise<T>>::from_promise(*this)};
   }
 
   auto return_value(T &&return_value) noexcept -> void {
     return_value_ = std::forward<T>(return_value);
   }
 
-  constexpr auto get_return_value() const noexcept -> T {
-    return return_value_;
-  }
+  constexpr auto get_return_value() const noexcept -> T { return return_value_; }
 
 private:
   T return_value_;
 };
 
-template <>
-class sync_wait_task_promise<void> final
-    : public sync_wait_task_promise_base<void> {
+template <> class sync_wait_task_promise<void> final : public sync_wait_task_promise_base<void> {
 public:
   auto get_return_object() noexcept -> sync_wait_task<void> {
-    return sync_wait_task<void>{
-        std::coroutine_handle<sync_wait_task_promise>::from_promise(*this)};
+    return sync_wait_task<void>{std::coroutine_handle<sync_wait_task_promise>::from_promise(*this)};
   }
 
   auto return_void() noexcept -> void {}

@@ -15,18 +15,14 @@ thread_pool::~thread_pool() {
 thread_pool::schedule_awaiter::schedule_awaiter(class thread_pool &thread_pool)
     : thread_pool_{thread_pool} {}
 
-auto thread_pool::schedule_awaiter::await_suspend(std::coroutine_handle<> handle
-) const noexcept -> void {
+auto thread_pool::schedule_awaiter::await_suspend(std::coroutine_handle<> handle) const noexcept
+    -> void {
   thread_pool_.enqueue(handle);
 }
 
-auto thread_pool::schedule() -> schedule_awaiter {
-  return schedule_awaiter{*this};
-}
+auto thread_pool::schedule() -> schedule_awaiter { return schedule_awaiter{*this}; }
 
-auto thread_pool::size() const noexcept -> size_t {
-  return thread_list_.size();
-}
+auto thread_pool::size() const noexcept -> size_t { return thread_list_.size(); }
 
 auto thread_pool::thread_loop() -> void {
   while (!stop_source_.stop_requested()) {

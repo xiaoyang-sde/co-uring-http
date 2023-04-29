@@ -18,9 +18,7 @@ public:
     return instance;
   }
 
-  auto register_buffer_ring(
-      const unsigned int buffer_ring_size, const size_t buffer_size
-  ) -> void {
+  auto register_buffer_ring(const unsigned int buffer_ring_size, const size_t buffer_size) -> void {
     const size_t ring_entries_size = buffer_ring_size * sizeof(io_uring_buf);
     const size_t page_alignment = sysconf(_SC_PAGESIZE);
     void *buffer_ring = nullptr;
@@ -37,8 +35,7 @@ public:
     );
   }
 
-  auto borrow_buffer(const unsigned int buffer_id, const size_t size)
-      -> std::span<std::byte> {
+  auto borrow_buffer(const unsigned int buffer_id, const size_t size) -> std::span<std::byte> {
     borrowed_buffer_set_[buffer_id] = true;
     return {buffer_list_[buffer_id].data(), size};
   }
@@ -46,8 +43,7 @@ public:
   auto return_buffer(const unsigned int buffer_id) -> void {
     borrowed_buffer_set_[buffer_id] = false;
     io_uring_handler::get_instance().add_buffer(
-        buffer_ring_.get(), buffer_list_[buffer_id], buffer_id,
-        buffer_list_.size()
+        buffer_ring_.get(), buffer_list_[buffer_id], buffer_id, buffer_list_.size()
     );
   }
 

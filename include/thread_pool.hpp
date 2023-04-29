@@ -18,9 +18,7 @@ public:
   public:
     explicit schedule_awaiter(thread_pool &thread_pool);
 
-    [[nodiscard]] constexpr auto await_ready() noexcept -> bool {
-      return false;
-    }
+    [[nodiscard]] constexpr auto await_ready() noexcept -> bool { return false; }
     constexpr auto await_resume() const noexcept -> void {}
     auto await_suspend(std::coroutine_handle<> handle) const noexcept -> void;
 
