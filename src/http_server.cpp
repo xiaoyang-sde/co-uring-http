@@ -1,10 +1,19 @@
 #include <coroutine>
+#include <ostream>
 
+#include "buffer_ring.hpp"
 #include "http_server.hpp"
 #include "socket.hpp"
 
 namespace co_uring_http {
+constexpr unsigned int BUFFER_RING_SIZE = 1024;
+constexpr size_t BUFFER_SIZE = 1024;
+
 thread_worker::thread_worker(const char *port) : server_socket_{} {
+  buffer_ring::get_instance().register_buffer_ring(
+      BUFFER_RING_SIZE, BUFFER_SIZE
+  );
+
   server_socket_.bind(port);
   server_socket_.listen();
 }
@@ -23,14 +32,17 @@ auto thread_worker::accept_loop() -> task<> {
 }
 
 auto thread_worker::handle_client(client_socket client_socket) -> task<> {
-  std::vector<char> buffer(1024);
+  buffer_ring &buffer_ring = buffer_ring::get_instance();
   while (true) {
-    const size_t read_length =
-        co_await client_socket.recv(buffer, buffer.size());
-    if (read_length == 0) {
+    const auto [buffer_id, buffer_size] = co_await client_socket.recv();
+    if (buffer_size == 0) {
       break;
     }
-    co_await client_socket.send(buffer, read_length);
+
+    const std::span<std::byte> buffer =
+        buffer_ring.borrow_buffer(buffer_id, buffer_size);
+    co_await client_socket.send(buffer, buffer_size);
+    buffer_ring.return_buffer(buffer_id);
   }
 }
 
@@ -49,8 +61,8 @@ auto thread_worker::event_loop() -> task<> {
 
       switch (sqe_data->type) {
       case sqe_data::ACCEPT:
-      case sqe_data::RECV:
-      case sqe_data::SEND: {
+      case sqe_data::SEND:
+      case sqe_data::RECV: {
         sqe_data->cqe_res = cqe->res;
         sqe_data->cqe_flags = cqe->flags;
         if (sqe_data->coroutine) {

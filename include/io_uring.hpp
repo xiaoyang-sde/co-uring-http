@@ -4,6 +4,7 @@
 #include <coroutine>
 #include <functional>
 #include <liburing.h>
+#include <span>
 
 namespace co_uring_http {
 struct sqe_data {
@@ -50,18 +51,27 @@ public:
       socklen_t *client_len
   ) -> void;
 
-  auto submit_recv_request(
-      const int fd, sqe_data *sqe_data, std::vector<char> &buffer,
-      const size_t length
-  ) -> void;
+  auto submit_recv_request(const int fd, sqe_data *sqe_data) -> void;
 
   auto submit_send_request(
-      const int fd, sqe_data *sqe_data, const std::vector<char> &buffer,
+      const int fd, sqe_data *sqe_data, const std::span<std::byte> &buffer,
       const size_t length
   ) -> void;
 
   auto submit_cancel_request(sqe_data *sqe_data) -> void;
 
+  auto setup_buffer_ring(
+      io_uring_buf_ring *buffer_ring,
+      std::vector<std::vector<std::byte>> &buffer_list,
+      const unsigned int buffer_ring_size
+  ) -> void;
+
+  auto add_buffer(
+      io_uring_buf_ring *buffer_ring, std::vector<std::byte> &buffer,
+      const unsigned int buffer_id, const unsigned int buffer_ring_size
+  ) -> void;
+
+private:
   io_uring io_uring_;
 };
 } // namespace co_uring_http

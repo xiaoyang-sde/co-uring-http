@@ -2,6 +2,7 @@
 #define SOCKET_HPP
 
 #include <coroutine>
+#include <span>
 #include <vector>
 
 #include "file_descriptor.hpp"
@@ -52,25 +53,23 @@ public:
 
   class recv_awaiter {
   public:
-    recv_awaiter(const int fd, std::vector<char> &buffer, const size_t length);
+    recv_awaiter(const int fd);
 
     auto await_ready() -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
-    auto await_resume() -> size_t;
+    auto await_resume() -> std::tuple<unsigned int, size_t>;
 
   private:
     const int fd_;
-    const size_t length_;
-    std::vector<char> &buffer_;
     sqe_data sqe_data_;
   };
 
-  auto recv(std::vector<char> &buffer, const size_t length) -> recv_awaiter;
+  auto recv() -> recv_awaiter;
 
   class send_awaiter {
   public:
     send_awaiter(
-        const int fd, const std::vector<char> &buffer, const size_t length
+        const int fd, const std::span<std::byte> &buffer, const size_t length
     );
 
     auto await_ready() -> bool;
@@ -80,11 +79,11 @@ public:
   private:
     const int fd_;
     const size_t length_;
-    const std::vector<char> &buffer_;
+    const std::span<std::byte> &buffer_;
     sqe_data sqe_data_;
   };
 
-  auto send(const std::vector<char> &buffer, const size_t length)
+  auto send(const std::span<std::byte> &buffer, const size_t length)
       -> send_awaiter;
 };
 

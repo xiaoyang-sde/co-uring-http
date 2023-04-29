@@ -1,8 +1,10 @@
 #include <cstring>
 #include <netdb.h>
+#include <span>
 #include <stdexcept>
 #include <unistd.h>
 
+#include "buffer_ring.hpp"
 #include "file_descriptor.hpp"
 #include "io_uring.hpp"
 #include "socket.hpp"
@@ -119,10 +121,7 @@ auto server_socket::accept(
 
 client_socket::client_socket(const int fd) : file_descriptor{fd} {}
 
-client_socket::recv_awaiter::recv_awaiter(
-    const int fd, std::vector<char> &buffer, const size_t length
-)
-    : fd_{fd}, length_{length}, buffer_{buffer} {}
+client_socket::recv_awaiter::recv_awaiter(const int fd) : fd_{fd} {}
 
 auto client_socket::recv_awaiter::await_ready() -> bool { return false; }
 
@@ -132,25 +131,28 @@ auto client_socket::recv_awaiter::await_suspend(
   sqe_data_.type = sqe_data::type::RECV;
   sqe_data_.coroutine = coroutine.address();
 
-  io_uring_handler::get_instance().submit_recv_request(
-      fd_, &sqe_data_, buffer_, length_
-  );
+  io_uring_handler::get_instance().submit_recv_request(fd_, &sqe_data_);
 }
 
-auto client_socket::recv_awaiter::await_resume() -> size_t {
-  return sqe_data_.cqe_res;
+auto client_socket::recv_awaiter::await_resume()
+    -> std::tuple<unsigned int, size_t> {
+  if (sqe_data_.cqe_flags | IORING_CQE_F_BUFFER) {
+    const unsigned int buffer_id =
+        sqe_data_.cqe_flags >> IORING_CQE_BUFFER_SHIFT;
+    return {buffer_id, sqe_data_.cqe_res};
+  }
+  return {};
 }
 
-auto client_socket::recv(std::vector<char> &buffer, const size_t length)
-    -> recv_awaiter {
+auto client_socket::recv() -> recv_awaiter {
   if (fd_.has_value()) {
-    return recv_awaiter(fd_.value(), buffer, length);
+    return recv_awaiter(fd_.value());
   }
   throw std::runtime_error("the file descriptor is invalid");
 }
 
 client_socket::send_awaiter::send_awaiter(
-    const int fd, const std::vector<char> &buffer, const size_t length
+    const int fd, const std::span<std::byte> &buffer, const size_t length
 )
     : fd_{fd}, length_{length}, buffer_{buffer} {};
 
@@ -171,8 +173,9 @@ auto client_socket::send_awaiter::await_resume() -> size_t {
   return sqe_data_.cqe_res;
 }
 
-auto client_socket::send(const std::vector<char> &buffer, const size_t length)
-    -> send_awaiter {
+auto client_socket::send(
+    const std::span<std::byte> &buffer, const size_t length
+) -> send_awaiter {
   if (fd_.has_value()) {
     return send_awaiter(fd_.value(), buffer, length);
   }
