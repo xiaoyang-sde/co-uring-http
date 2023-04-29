@@ -59,20 +59,10 @@ auto thread_worker::event_loop() -> task<> {
       sqe_data *sqe_data =
           reinterpret_cast<struct sqe_data *>(io_uring_cqe_get_data(cqe));
 
-      switch (sqe_data->type) {
-      case sqe_data::ACCEPT:
-      case sqe_data::SEND:
-      case sqe_data::RECV: {
-        sqe_data->cqe_res = cqe->res;
-        sqe_data->cqe_flags = cqe->flags;
-        if (sqe_data->coroutine) {
-          std::coroutine_handle<>::from_address(sqe_data->coroutine).resume();
-        }
-        break;
-      }
-      case sqe_data::READ:
-      case sqe_data::WRITE:
-        break;
+      sqe_data->cqe_res = cqe->res;
+      sqe_data->cqe_flags = cqe->flags;
+      if (sqe_data->coroutine) {
+        std::coroutine_handle<>::from_address(sqe_data->coroutine).resume();
       }
 
       io_uring_handler.cqe_seen(cqe);

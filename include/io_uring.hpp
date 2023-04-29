@@ -8,15 +8,6 @@
 
 namespace co_uring_http {
 struct sqe_data {
-  enum type {
-    ACCEPT,
-    RECV,
-    SEND,
-    READ,
-    WRITE,
-  };
-
-  type type;
   void *coroutine;
   int cqe_res;
   unsigned int cqe_flags;

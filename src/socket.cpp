@@ -83,7 +83,6 @@ auto server_socket::multishot_accept_guard::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
   if (initial_await_) {
-    sqe_data_.type = sqe_data::type::ACCEPT;
     sqe_data_.coroutine = coroutine.address();
 
     io_uring_handler::get_instance().submit_multishot_accept_request(
@@ -128,7 +127,6 @@ auto client_socket::recv_awaiter::await_ready() -> bool { return false; }
 auto client_socket::recv_awaiter::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
-  sqe_data_.type = sqe_data::type::RECV;
   sqe_data_.coroutine = coroutine.address();
 
   io_uring_handler::get_instance().submit_recv_request(fd_, &sqe_data_);
@@ -161,7 +159,6 @@ auto client_socket::send_awaiter::await_ready() -> bool { return false; }
 auto client_socket::send_awaiter::await_suspend(
     std::coroutine_handle<> coroutine
 ) -> void {
-  sqe_data_.type = sqe_data::type::SEND;
   sqe_data_.coroutine = coroutine.address();
 
   io_uring_handler::get_instance().submit_send_request(
