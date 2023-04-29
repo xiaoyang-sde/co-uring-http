@@ -122,7 +122,7 @@ auto client_socket::recv_awaiter::await_suspend(std::coroutine_handle<> coroutin
 }
 
 auto client_socket::recv_awaiter::await_resume() -> std::tuple<unsigned int, size_t> {
-  if (!(sqe_data_.cqe_flags | IORING_CQE_F_BUFFER)) {
+  if (sqe_data_.cqe_flags | IORING_CQE_F_BUFFER) {
     const unsigned int buffer_id = sqe_data_.cqe_flags >> IORING_CQE_BUFFER_SHIFT;
     return {buffer_id, sqe_data_.cqe_res};
   }
