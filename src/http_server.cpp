@@ -1,12 +1,8 @@
-#include <coroutine>
-#include <ostream>
-
-#include "buffer_ring.hpp"
 #include "http_server.hpp"
+#include "buffer_ring.hpp"
 #include "socket.hpp"
 
 namespace co_uring_http {
-
 thread_worker::thread_worker(const char *port) {
   buffer_ring::get_instance().register_buffer_ring(BUFFER_RING_SIZE, BUFFER_SIZE);
 
