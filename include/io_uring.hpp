@@ -55,12 +55,12 @@ public:
 
   auto setup_buffer_ring(
       io_uring_buf_ring *buffer_ring,
-      std::vector<std::vector<std::byte>> &buffer_list,
+      std::span<std::vector<std::byte>> buffer_list,
       const unsigned int buffer_ring_size
   ) -> void;
 
   auto add_buffer(
-      io_uring_buf_ring *buffer_ring, std::vector<std::byte> &buffer,
+      io_uring_buf_ring *buffer_ring, std::span<std::byte> buffer,
       const unsigned int buffer_id, const unsigned int buffer_ring_size
   ) -> void;
 

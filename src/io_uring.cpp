@@ -77,7 +77,7 @@ auto io_uring_handler::submit_cancel_request(sqe_data *sqe_data) -> void {
 
 auto io_uring_handler::setup_buffer_ring(
     io_uring_buf_ring *buffer_ring,
-    std::vector<std::vector<std::byte>> &buffer_list,
+    std::span<std::vector<std::byte>> buffer_list,
     const unsigned int buffer_ring_size
 ) -> void {
   io_uring_buf_reg io_uring_buf_reg{
@@ -104,7 +104,7 @@ auto io_uring_handler::setup_buffer_ring(
 };
 
 auto io_uring_handler::add_buffer(
-    io_uring_buf_ring *buffer_ring, std::vector<std::byte> &buffer,
+    io_uring_buf_ring *buffer_ring, std::span<std::byte> buffer,
     const unsigned int buffer_id, const unsigned int buffer_ring_size
 ) -> void {
   const unsigned int mask = io_uring_buf_ring_mask(buffer_ring_size);
