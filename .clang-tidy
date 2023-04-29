@@ -1,7 +1,2 @@
-Checks:
-  clang-analyzer-*,
-  google-*,
-  modernize-*,
-  performance-*
-
-HeaderFilterRegex: '/src/include'
+Checks: "clang-analyzer-*, google-*, modernize-*, performance-*"
+HeaderFilterRegex: "/src/include"

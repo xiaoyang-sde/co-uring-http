@@ -1,9 +1,10 @@
 #ifndef IO_URING_HPP
 #define IO_URING_HPP
 
+#include <liburing.h>
+
 #include <coroutine>
 #include <functional>
-#include <liburing.h>
 #include <span>
 
 namespace co_uring_http {

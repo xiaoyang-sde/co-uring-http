@@ -1,8 +1,10 @@
+#include "io_uring.hpp"
+
 #include <liburing.h>
+
 #include <stdexcept>
 
 #include "constant.hpp"
-#include "io_uring.hpp"
 
 namespace co_uring_http {
 io_uring_handler::io_uring_handler() {

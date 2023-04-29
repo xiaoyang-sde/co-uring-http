@@ -1,12 +1,14 @@
-#include <cstring>
+#include "socket.hpp"
+
 #include <netdb.h>
+#include <unistd.h>
+
+#include <cstring>
 #include <span>
 #include <stdexcept>
-#include <unistd.h>
 
 #include "buffer_ring.hpp"
 #include "file_descriptor.hpp"
-#include "socket.hpp"
 
 namespace co_uring_http {
 server_socket::server_socket() = default;

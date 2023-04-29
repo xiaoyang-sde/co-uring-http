@@ -1,8 +1,9 @@
 #ifndef BUFFER_RING_HPP
 #define BUFFER_RING_HPP
 
-#include <bitset>
 #include <liburing.h>
+
+#include <bitset>
 #include <memory>
 #include <optional>
 #include <span>
