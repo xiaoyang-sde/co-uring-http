@@ -75,9 +75,6 @@ auto http_server::listen(const char *port) -> void {
     thread_worker.resume();
     thread_worker_list.emplace_back(std::move(thread_worker));
   }
-
-  while (true) {
-    std::this_thread::sleep_for(std::chrono::seconds(10));
-  }
+  sync_wait_all(thread_worker_list);
 }
 } // namespace co_uring_http

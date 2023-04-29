@@ -103,6 +103,25 @@ template <typename T> auto sync_wait(task<T> &&task) -> T {
     return sync_wait_task_handle.get_return_value();
   }
 }
+
+template <typename T>
+auto sync_wait_all(std::vector<task<T>> &task_list)
+    -> std::conditional_t<std::is_same_v<T, void>, void, std::vector<T>> {
+  if constexpr (std::is_same_v<T, void>) {
+    for (auto &task : task_list) {
+      sync_wait(task);
+    }
+  } else {
+    std::vector<T> return_value_list;
+    return_value_list.reserve(task_list.size());
+
+    std::transform(
+        task_list.begin(), task_list.end(), std::back_inserter(return_value_list),
+        [](task<T> &task) -> T { return sync_wait(task); }
+    );
+    return return_value_list;
+  }
+}
 } // namespace co_uring_http
 
 #endif
