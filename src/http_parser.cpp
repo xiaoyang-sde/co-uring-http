@@ -57,18 +57,14 @@ auto split(std::string_view string, std::string_view delimiter) -> std::vector<s
 
 auto http_parser::parse_packet(std::span<char> packet) -> std::optional<http_request> {
   raw_http_request_.reserve(raw_http_request_.size() + packet.size());
-  std::transform(
-      packet.begin(), packet.end(), std::back_inserter(raw_http_request_),
-      [](const char byte) -> unsigned char { return static_cast<unsigned char>(byte); }
-  );
+  raw_http_request_.insert(raw_http_request_.end(), packet.begin(), packet.end());
 
-  std::string_view packet_string_view(reinterpret_cast<char *>(packet.data()));
-  if (!packet_string_view.ends_with("\r\n\r\n")) {
+  std::string_view raw_http_request(raw_http_request_.data());
+  if (!raw_http_request.ends_with("\r\n\r\n")) {
     return {};
   }
 
   http_request http_request;
-  std::string_view raw_http_request(reinterpret_cast<char *>(raw_http_request_.data()));
   const std::vector<std::string_view> request_line_list = split(raw_http_request, "\r\n");
   const std::vector<std::string_view> status_line_list = split(request_line_list[0], ' ');
   http_request.method = status_line_list[0];
