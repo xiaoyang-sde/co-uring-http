@@ -3,5 +3,5 @@
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-	"runArgs": ["--name", "co_uring_http"]
+	"runArgs": ["--name", "co-uring-http"]
 }
