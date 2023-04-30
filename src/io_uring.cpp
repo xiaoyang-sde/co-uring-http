@@ -2,6 +2,7 @@
 
 #include <liburing.h>
 #include <liburing/io_uring.h>
+#include <sys/types.h>
 
 #include <stdexcept>
 
@@ -59,11 +60,19 @@ auto io_uring_handler::submit_recv_request(
 }
 
 auto io_uring_handler::submit_send_request(
-    const int raw_file_descriptor, sqe_data *sqe_data, const std::span<std::byte> &buffer,
+    const int raw_file_descriptor, sqe_data *sqe_data, const std::span<char> &buffer,
     const size_t length
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
   io_uring_prep_send(sqe, raw_file_descriptor, buffer.data(), length, 0);
+  io_uring_sqe_set_data(sqe, sqe_data);
+}
+
+auto io_uring_handler::submit_splice_request(
+    sqe_data *sqe_data, int raw_file_descriptor_in, int raw_file_descriptor_out, size_t length
+) -> void {
+  io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
+  io_uring_prep_splice(sqe, raw_file_descriptor_in, -1, raw_file_descriptor_out, -1, length, 0);
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
@@ -73,11 +82,11 @@ auto io_uring_handler::submit_cancel_request(sqe_data *sqe_data) -> void {
 }
 
 auto io_uring_handler::setup_buffer_ring(
-    io_uring_buf_ring *buffer_ring, std::span<std::vector<std::byte>> buffer_list,
+    io_uring_buf_ring *buffer_ring, std::span<std::vector<char>> buffer_list,
     const unsigned int buffer_ring_size
 ) -> void {
   io_uring_buf_reg io_uring_buf_reg{
-      .ring_addr = reinterpret_cast<unsigned long long>(buffer_ring),
+      .ring_addr = reinterpret_cast<__uint64_t>(buffer_ring),
       .ring_entries = buffer_ring_size,
       .bgid = BUFFER_GROUP_ID,
   };
@@ -99,7 +108,7 @@ auto io_uring_handler::setup_buffer_ring(
 };
 
 auto io_uring_handler::add_buffer(
-    io_uring_buf_ring *buffer_ring, std::span<std::byte> buffer, const unsigned int buffer_id,
+    io_uring_buf_ring *buffer_ring, std::span<char> buffer, const unsigned int buffer_id,
     const unsigned int buffer_ring_size
 ) -> void {
   const unsigned int mask = io_uring_buf_ring_mask(buffer_ring_size);

@@ -4,19 +4,17 @@
 #include <liburing.h>
 #include <sys/socket.h>
 
-#include <cstddef>
 #include <functional>
 #include <span>
 #include <vector>
-
 struct io_uring_buf_ring;
 struct io_uring_cqe;
 
 namespace co_uring_http {
 struct sqe_data {
-  void *coroutine;
-  int cqe_res;
-  unsigned int cqe_flags;
+  void *coroutine = nullptr;
+  int cqe_res = 0;
+  unsigned int cqe_flags = 0;
 };
 
 class io_uring_handler {
@@ -50,18 +48,22 @@ public:
   auto submit_recv_request(int raw_file_descriptor, sqe_data *sqe_data, size_t length) -> void;
 
   auto submit_send_request(
-      int raw_file_descriptor, sqe_data *sqe_data, const std::span<std::byte> &buffer, size_t length
+      int raw_file_descriptor, sqe_data *sqe_data, const std::span<char> &buffer, size_t length
+  ) -> void;
+
+  auto submit_splice_request(
+      sqe_data *sqe_data, int raw_file_descriptor_in, int raw_file_descriptor_out, size_t length
   ) -> void;
 
   auto submit_cancel_request(sqe_data *sqe_data) -> void;
 
   auto setup_buffer_ring(
-      io_uring_buf_ring *buffer_ring, std::span<std::vector<std::byte>> buffer_list,
+      io_uring_buf_ring *buffer_ring, std::span<std::vector<char>> buffer_list,
       unsigned int buffer_ring_size
   ) -> void;
 
   auto add_buffer(
-      io_uring_buf_ring *buffer_ring, std::span<std::byte> buffer, unsigned int buffer_id,
+      io_uring_buf_ring *buffer_ring, std::span<char> buffer, unsigned int buffer_id,
       unsigned int buffer_ring_size
   ) -> void;
 

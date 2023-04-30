@@ -5,15 +5,20 @@
 
 #include <coroutine>
 #include <cstddef>
+#include <cstdint>
+#include <filesystem>
 #include <functional>
 #include <optional>
 #include <span>
+#include <stdexcept>
 #include <string>
+#include <tuple>
 #include <utility>
 #include <vector>
 
 #include "buffer_ring.hpp"
 #include "constant.hpp"
+#include "file_descriptor.hpp"
 #include "http_message.hpp"
 #include "http_parser.hpp"
 #include "io_uring.hpp"
@@ -50,12 +55,40 @@ auto thread_worker::handle_client(client_socket client_socket) -> task<> {
       break;
     }
 
-    const std::span<std::byte> buffer = buffer_ring.borrow_buffer(buffer_id, buffer_size);
+    const std::span<char> buffer = buffer_ring.borrow_buffer(buffer_id, buffer_size);
     if (const auto parse_result = http_parser.parse_packet(buffer); parse_result.has_value()) {
       const http_request &http_request = parse_result.value();
+      const std::filesystem::path file_path = std::filesystem::relative(http_request.url, "/");
+
+      http_response http_response;
+      http_response.version = http_request.version;
+      if (std::filesystem::exists(file_path) && std::filesystem::is_regular_file(file_path)) {
+        http_response.status = "200";
+        http_response.status_text = "OK";
+        const uintmax_t file_size = std::filesystem::file_size(file_path);
+        http_response.header_list.emplace_back("content-length", std::to_string(file_size));
+
+        std::string send_buffer = http_response.serialize();
+        if (co_await client_socket.send(send_buffer, send_buffer.size()) == -1) {
+          throw std::runtime_error("failed to invoke 'send'");
+        }
+
+        const file_descriptor file_descriptor = open(file_path);
+        if (co_await splice(file_descriptor, client_socket, file_size) == -1) {
+          throw std::runtime_error("failed to invoke 'splice'");
+        }
+      } else {
+        http_response.status = "404";
+        http_response.status_text = "Not Found";
+        http_response.header_list.emplace_back("content-length", "0");
+
+        std::string send_buffer = http_response.serialize();
+        if (co_await client_socket.send(send_buffer, send_buffer.size()) == -1) {
+          throw std::runtime_error("failed to invoke 'send'");
+        }
+      }
     }
 
-    // co_await client_socket.send(buffer, buffer_size);
     buffer_ring.return_buffer(buffer_id);
   }
 }

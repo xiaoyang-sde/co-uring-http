@@ -4,13 +4,13 @@
 #include <sys/socket.h>
 
 #include <coroutine>
-#include <cstddef>
 #include <optional>
 #include <span>
 #include <tuple>
 
 #include "file_descriptor.hpp"
 #include "io_uring.hpp"
+#include "task.hpp"
 
 namespace co_uring_http {
 
@@ -58,7 +58,7 @@ public:
 
     [[nodiscard]] auto await_ready() const -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
-    auto await_resume() -> std::tuple<unsigned int, size_t>;
+    auto await_resume() -> std::tuple<unsigned int, ssize_t>;
 
   private:
     const int raw_file_descriptor_;
@@ -70,20 +70,20 @@ public:
 
   class send_awaiter {
   public:
-    send_awaiter(int raw_file_descriptor, const std::span<std::byte> &buffer, size_t length);
+    send_awaiter(int raw_file_descriptor, const std::span<char> &buffer, size_t length);
 
     [[nodiscard]] auto await_ready() const -> bool;
     auto await_suspend(std::coroutine_handle<> coroutine) -> void;
-    [[nodiscard]] auto await_resume() const -> size_t;
+    [[nodiscard]] auto await_resume() const -> ssize_t;
 
   private:
     const int raw_file_descriptor_;
     const size_t length_;
-    const std::span<std::byte> &buffer_;
+    const std::span<char> &buffer_;
     sqe_data sqe_data_;
   };
 
-  auto send(const std::span<std::byte> &buffer, size_t length) -> send_awaiter;
+  auto send(const std::span<char> &buffer, size_t length) -> task<ssize_t>;
 };
 
 } // namespace co_uring_http

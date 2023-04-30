@@ -1,7 +1,6 @@
 #ifndef HTTP_PARSER_HPP
 #define HTTP_PARSER_HPP
 
-#include <cstddef>
 #include <optional>
 #include <span>
 #include <string>
@@ -11,7 +10,7 @@ class http_request;
 
 class http_parser {
 public:
-  auto parse_packet(std::span<std::byte> packet) -> std::optional<http_request>;
+  auto parse_packet(std::span<char> packet) -> std::optional<http_request>;
 
 private:
   std::string raw_http_request_;

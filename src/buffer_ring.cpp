@@ -32,7 +32,7 @@ auto buffer_ring::register_buffer_ring(
 }
 
 auto buffer_ring::borrow_buffer(const unsigned int buffer_id, const size_t size)
-    -> std::span<std::byte> {
+    -> std::span<char> {
   borrowed_buffer_set_[buffer_id] = true;
   return {buffer_list_[buffer_id].data(), size};
 }

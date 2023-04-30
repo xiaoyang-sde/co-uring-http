@@ -123,7 +123,7 @@ auto client_socket::recv_awaiter::await_suspend(std::coroutine_handle<> coroutin
   io_uring_handler::get_instance().submit_recv_request(raw_file_descriptor_, &sqe_data_, length_);
 }
 
-auto client_socket::recv_awaiter::await_resume() -> std::tuple<unsigned int, size_t> {
+auto client_socket::recv_awaiter::await_resume() -> std::tuple<unsigned int, ssize_t> {
   if (sqe_data_.cqe_flags | IORING_CQE_F_BUFFER) {
     const unsigned int buffer_id = sqe_data_.cqe_flags >> IORING_CQE_BUFFER_SHIFT;
     return {buffer_id, sqe_data_.cqe_res};
@@ -139,7 +139,7 @@ auto client_socket::recv(const size_t length) -> recv_awaiter {
 }
 
 client_socket::send_awaiter::send_awaiter(
-    const int raw_file_descriptor, const std::span<std::byte> &buffer, const size_t length
+    const int raw_file_descriptor, const std::span<char> &buffer, const size_t length
 )
     : raw_file_descriptor_{raw_file_descriptor}, length_{length}, buffer_{buffer} {};
 
@@ -153,13 +153,23 @@ auto client_socket::send_awaiter::await_suspend(std::coroutine_handle<> coroutin
   );
 }
 
-auto client_socket::send_awaiter::await_resume() const -> size_t { return sqe_data_.cqe_res; }
+auto client_socket::send_awaiter::await_resume() const -> ssize_t { return sqe_data_.cqe_res; }
 
-auto client_socket::send(const std::span<std::byte> &buffer, const size_t length) -> send_awaiter {
-  if (raw_file_descriptor_.has_value()) {
-    return {raw_file_descriptor_.value(), buffer, length};
+auto client_socket::send(const std::span<char> &buffer, const size_t length) -> task<ssize_t> {
+  if (!raw_file_descriptor_.has_value()) {
+    throw std::runtime_error("the file descriptor is invalid");
   }
-  throw std::runtime_error("the file descriptor is invalid");
+
+  size_t bytes_sent = 0;
+  while (bytes_sent < length) {
+    ssize_t result =
+        co_await send_awaiter(raw_file_descriptor_.value(), buffer.subspan(bytes_sent), length);
+    if (result < 0) {
+      co_return -1;
+    }
+    bytes_sent += result;
+  }
+  co_return bytes_sent;
 }
 
 } // namespace co_uring_http

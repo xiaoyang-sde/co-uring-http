@@ -2,6 +2,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstddef>
 #include <iterator>
 #include <optional>
 #include <string_view>
@@ -54,11 +55,11 @@ auto split(std::string_view string, std::string_view delimiter) -> std::vector<s
   return result;
 }
 
-auto http_parser::parse_packet(std::span<std::byte> packet) -> std::optional<http_request> {
+auto http_parser::parse_packet(std::span<char> packet) -> std::optional<http_request> {
   raw_http_request_.reserve(raw_http_request_.size() + packet.size());
   std::transform(
       packet.begin(), packet.end(), std::back_inserter(raw_http_request_),
-      [](const std::byte byte) -> unsigned char { return static_cast<unsigned char>(byte); }
+      [](const char byte) -> unsigned char { return static_cast<unsigned char>(byte); }
   );
 
   std::string_view packet_string_view(reinterpret_cast<char *>(packet.data()));
