@@ -6,12 +6,16 @@
 #include <coroutine>
 #include <cstddef>
 #include <functional>
+#include <optional>
 #include <span>
+#include <string>
 #include <utility>
 #include <vector>
 
 #include "buffer_ring.hpp"
 #include "constant.hpp"
+#include "http_message.hpp"
+#include "http_parser.hpp"
 #include "io_uring.hpp"
 #include "socket.hpp"
 #include "sync_wait.hpp"
@@ -38,6 +42,7 @@ auto thread_worker::accept_client() -> task<> {
 }
 
 auto thread_worker::handle_client(client_socket client_socket) -> task<> {
+  http_parser http_parser;
   buffer_ring &buffer_ring = buffer_ring::get_instance();
   while (true) {
     const auto [buffer_id, buffer_size] = co_await client_socket.recv(BUFFER_SIZE);
@@ -46,7 +51,11 @@ auto thread_worker::handle_client(client_socket client_socket) -> task<> {
     }
 
     const std::span<std::byte> buffer = buffer_ring.borrow_buffer(buffer_id, buffer_size);
-    co_await client_socket.send(buffer, buffer_size);
+    if (const auto parse_result = http_parser.parse_packet(buffer); parse_result.has_value()) {
+      const http_request &http_request = parse_result.value();
+    }
+
+    // co_await client_socket.send(buffer, buffer_size);
     buffer_ring.return_buffer(buffer_id);
   }
 }
