@@ -13,25 +13,29 @@
 
 ### Component
 
-- Coroutine
-  - `task` (`task.hpp`): The `task` class represents a coroutine that does not start until it is awaited.
-  - `thread_pool` (`thread_pool.hpp`): The `thread_pool` class provides an abstraction that allows a coroutine to be scheduled on fixed-size pool of threads. The number of threads is limited to the number of logical processors, allowing for hardware parallelism.
+#### Coroutine
 
-- File Descriptor
-  - `file_descriptor` (`file_descriptor.hpp`): The `file_descriptor` class owns a file descriptor. The `file_descriptor.hpp` file provides general-purpose functions that works with the `file_descriptor` class, such as `open()`, `pipe()`, and `splice()`.
-  - `server_socket` (`socket.hpp`): The `server_socket` class extends the `file_descriptor` class and represents the listening socket that could accept clients. It provides an `accept()` method, which records if there is an existing multishot `accept` request in `io_uring` and submits a new one if none exists.
-  - `client_socket` (`socket.hpp`): The `client_socket` class extends the `file_descriptor` class and represents the socket that could communicate with the client. It provides a `send()` method, which submits a `send` request to `io_uring` and a `recv()` method, which submits a `recv` request to `io_uring`.
+- `task` (`task.hpp`): The `task` class represents a coroutine that does not start until it is awaited.
+- `thread_pool` (`thread_pool.hpp`): The `thread_pool` class provides an abstraction that allows a coroutine to be scheduled on fixed-size pool of threads. The number of threads is limited to the number of logical processors, allowing for hardware parallelism.
 
-- `io_uring`
-  - `io_uring` (`io_uring.hpp`): The `io_uring` class is a `thread_local` singleton, which owns the submission queue and completion queue of `io_uring`.
-  - `buffer_ring` (`buffer_ring.hpp`): The `buffer_ring` class is a `thread_local` singleton, manages a collection of buffers that are supplied to `io_uring`. When an incoming HTTP request arrives, `io_uring` selects a buffer from the available pool and populates it with the received data, eliminating the need for allocating a new buffer for each request. Once the `http_parser` finishes parsing the request, the server returns the buffer to `io_uring`, enabling its reuse for future requests. The number of buffers and and the size of each buffer are defined in `constant.hpp`, which can be adjusted based on the estimated workload of the HTTP server.
+#### File Descriptor
 
-- HTTP Server
-  - `http_server` (`http_server.hpp`): The `http_server` class creates a `thread_worker` task for each thread in the `thread_pool` and waits for these tasks to finish. The tasks will finish when an exception occurs.
-  - `thread_worker` (`http_server.hpp`): The `thread_worker` class contains a collection of coroutines that will be scheduled on each thread. When the class is constructed, it spawns `thread_worker::accept_client()` and `thread_worker::event_loop()`.
-    - The `thread_worker::event_loop()` coroutine processes events in the completion queue of `io_uring` and resumes the coroutine that is waiting for the completion of that event.
-    - The `thread_worker::accept_client()` coroutine invokes `server_socket::accept()` to submit a multishot `accept()` request to `io_uring`, which will generate a completion queue event for each incoming client. When a client arrives, it spawns the `thread_worker::handle_client()` coroutine.
-    - The `thread_worker::handle_client()` coroutine invokes `client_socket::recv()` to wait for an HTTP request. When a request arrives, it parses the request with `http_parser` (`http_parser.hpp`), constructs an `http_response` (`http_message.hpp`), and sends the response with `client_socket::send()`.
+- `file_descriptor` (`file_descriptor.hpp`): The `file_descriptor` class owns a file descriptor. The `file_descriptor.hpp` file provides general-purpose functions that works with the `file_descriptor` class, such as `open()`, `pipe()`, and `splice()`.
+- `server_socket` (`socket.hpp`): The `server_socket` class extends the `file_descriptor` class and represents the listening socket that could accept clients. It provides an `accept()` method, which records if there is an existing multishot `accept` request in `io_uring` and submits a new one if none exists.
+- `client_socket` (`socket.hpp`): The `client_socket` class extends the `file_descriptor` class and represents the socket that could communicate with the client. It provides a `send()` method, which submits a `send` request to `io_uring` and a `recv()` method, which submits a `recv` request to `io_uring`.
+
+#### `io_uring`
+
+- `io_uring` (`io_uring.hpp`): The `io_uring` class is a `thread_local` singleton, which owns the submission queue and completion queue of `io_uring`.
+- `buffer_ring` (`buffer_ring.hpp`): The `buffer_ring` class is a `thread_local` singleton, manages a collection of buffers that are supplied to `io_uring`. When an incoming HTTP request arrives, `io_uring` selects a buffer from the available pool and populates it with the received data, eliminating the need for allocating a new buffer for each request. Once the `http_parser` finishes parsing the request, the server returns the buffer to `io_uring`, enabling its reuse for future requests. The number of buffers and and the size of each buffer are defined in `constant.hpp`, which can be adjusted based on the estimated workload of the HTTP server.
+
+#### HTTP Server
+
+- `http_server` (`http_server.hpp`): The `http_server` class creates a `thread_worker` task for each thread in the `thread_pool` and waits for these tasks to finish. The tasks will finish when an exception occurs.
+- `thread_worker` (`http_server.hpp`): The `thread_worker` class contains a collection of coroutines that will be scheduled on each thread. When the class is constructed, it spawns `thread_worker::accept_client()` and `thread_worker::event_loop()`.
+  - The `thread_worker::event_loop()` coroutine processes events in the completion queue of `io_uring` and resumes the coroutine that is waiting for the completion of that event.
+  - The `thread_worker::accept_client()` coroutine invokes `server_socket::accept()` to submit a multishot `accept()` request to `io_uring`, which will generate a completion queue event for each incoming client. When a client arrives, it spawns the `thread_worker::handle_client()` coroutine.
+  - The `thread_worker::handle_client()` coroutine invokes `client_socket::recv()` to wait for an HTTP request. When a request arrives, it parses the request with `http_parser` (`http_parser.hpp`), constructs an `http_response` (`http_message.hpp`), and sends the response with `client_socket::send()`.
 
 ```cpp
 auto thread_worker::handle_client(client_socket client_socket) -> task<> {
