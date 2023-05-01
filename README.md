@@ -1,6 +1,6 @@
 # `co-uring-http`
 
-`co-uring-http` is a high-performance HTTP server built on C++20 coroutines and `io_uring`. This project serves as an exploration of the latest Linux kernel and C++ standard features and is not recommended for production use. For learning purposes, the application re-implements general-purpose coroutine primitives (such as `task<T>`, `sync_wait<task<T>>`, etc.) instead of utilizing existing libraries. This document is a draft, and a more detailed design document will be provided later.
+`co-uring-http` is a high-performance HTTP server built on C++20 coroutines and `io_uring`. This project serves as an exploration of the latest Linux kernel and C++ standard features and is not recommended for production use. For learning purposes, `co-uring-http` re-implements general-purpose coroutine primitives (such as `task<T>`, `sync_wait<task<T>>`, etc.) instead of utilizing existing libraries. This document is a draft, and a more detailed design document will be provided later.
 
 The high-level design of `co-uring-http` consists of a thread pool with a number of threads equal to or less than the number of logical processors. Each thread includes a socket bound to the same port using the `SO_REUSEPORT` option and spawns a coroutine to accept clients while running an event loop to process events in the `io_uring` completion queue. When a client arrives, the `handle_client()` coroutine is spawned to handle HTTP requests for that client. As the coroutine issues async operations, it is suspended and transfers control back to the event loop, which then resumes the coroutine when the async operations are complete.
 
@@ -71,32 +71,46 @@ make -j$(nproc)
 ./co_uring_http
 ```
 
-## Update Kernel for WSL
+## Update WSL Kernel
 
-The default Linux kernel version for the Windows Subsystem for Linux (WSL) is 5.15, which does not support certain `io_uring` features, such as multi-shot accept or ring-mapped buffers. However, WSL provides a [`.wslconfig`](https://learn.microsoft.com/en-us/windows/wsl/wsl-config) file that enables the use of a custom-built kernel image. Here are the steps to build the latest Linux kernel on a WSL instance running Ubuntu:
+The default Linux kernel version for the Windows Subsystem for Linux (WSL) is 5.15, which does not support certain `io_uring` features, such as multi-shot accept or ring-mapped buffers. However, WSL provides a [`.wslconfig`](https://learn.microsoft.com/en-us/windows/wsl/wsl-config) file that enables the use of a custom-built kernel image. It's recommended to build the kernel within an existing WSL instance.
+
+- Install the build dependencies:
 
 ```console
-# Install the build dependencies
 sudo apt install git bc build-essential flex bison libssl-dev libelf-dev dwarves
+```
 
-# Download the latest kernel source code
+- Download the latest kernel source code:
+
+```console
 wget https://github.com/torvalds/linux/archive/refs/tags/v6.3.tar.gz -O v6.3.tar.gz
 tar -xf v6.3.tar.gz
+```
 
-# Download the build configuration file for WSL
+- Download the build configuration file for WSL:
+
+```console
 wget https://raw.githubusercontent.com/microsoft/WSL2-Linux-Kernel/linux-msft-wsl-6.1.y/Microsoft/config-wsl
 cp config-wsl linux-6.3/arch/x86/configs/wsl_defconfig
+```
 
-# Build the kernel
+- Build the kernel:
+
+```console
 cd linux-6.3
 make KCONFIG_CONFIG=arch/x86/configs/wsl_defconfig -j$(nproc)
+```
 
-# Clone the kernel image to `$env:USERPROFILE` (default user path)
+- Clone the kernel image to `$env:USERPROFILE` (default user path) and set `.wslconfig` to use the kernel image:
+
+```console
 powershell.exe /C 'Copy-Item .\arch\x86\boot\bzImage $env:USERPROFILE'
-
-# Set `.wslconfig` to use the kernel image
 powershell.exe /C 'Write-Output [wsl2]`nkernel=$env:USERPROFILE\bzImage | % {$_.replace("\","\\")} | Out-File $env:USERPROFILE\.wslconfig -encoding ASCII'
+```
 
-# Restart WSL
+- Restart WSL:
+
+```console
 wsl --shutdown
 ```
