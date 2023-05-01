@@ -102,13 +102,13 @@ Response time histogram:
   1.263 [78]    |
 ```
 
-## Requirement
+## Environment
 
-- Linux Kernel 6.3
-- CMake 3.10
-- Clang 14
-- libstdc++ 11.3 (could be installed with GCC 11.3)
-- [liburing](https://github.com/axboe/liburing) 2.3
+- Linux Kernel 6.3 or newer
+- CMake 3.10 or newer
+- Clang 14 or newer
+- libstdc++ 11.3 or newer (bundled with GCC)
+- [liburing](https://github.com/axboe/liburing) 2.3 or newer
 
 `co-uring-http` uses Clang to take advantage of the LLVM toolchain (`clangd`, `lldb`, `clang-format`, etc.). However, since `libc++` lacks support for certain C++ 20 features such as `jthread`, the project links with GCC's `libstdc++`. The latest Linux kernel is required because the project leverages latest features of `io_uring`.
 
