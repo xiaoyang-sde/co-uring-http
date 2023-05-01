@@ -68,7 +68,7 @@ server_socket::multishot_accept_guard::multishot_accept_guard(
       client_address_size_{client_address_size} {}
 
 server_socket::multishot_accept_guard::~multishot_accept_guard() {
-  io_uring_handler::get_instance().submit_cancel_request(&sqe_data_);
+  io_uring::get_instance().submit_cancel_request(&sqe_data_);
 }
 
 auto server_socket::multishot_accept_guard::await_ready() const -> bool { return false; }
@@ -78,7 +78,7 @@ auto server_socket::multishot_accept_guard::await_suspend(std::coroutine_handle<
   if (initial_await_) {
     sqe_data_.coroutine = coroutine.address();
 
-    io_uring_handler::get_instance().submit_multishot_accept_request(
+    io_uring::get_instance().submit_multishot_accept_request(
         raw_file_descriptor_, &sqe_data_, reinterpret_cast<sockaddr *>(client_address_),
         client_address_size_
     );
@@ -88,7 +88,7 @@ auto server_socket::multishot_accept_guard::await_suspend(std::coroutine_handle<
 
 auto server_socket::multishot_accept_guard::await_resume() -> int {
   if (!(sqe_data_.cqe_flags & IORING_CQE_F_MORE)) {
-    io_uring_handler::get_instance().submit_multishot_accept_request(
+    io_uring::get_instance().submit_multishot_accept_request(
         raw_file_descriptor_, &sqe_data_, reinterpret_cast<sockaddr *>(client_address_),
         client_address_size_
     );
@@ -120,7 +120,7 @@ auto client_socket::recv_awaiter::await_ready() const -> bool { return false; }
 
 auto client_socket::recv_awaiter::await_suspend(std::coroutine_handle<> coroutine) -> void {
   sqe_data_.coroutine = coroutine.address();
-  io_uring_handler::get_instance().submit_recv_request(raw_file_descriptor_, &sqe_data_, length_);
+  io_uring::get_instance().submit_recv_request(raw_file_descriptor_, &sqe_data_, length_);
 }
 
 auto client_socket::recv_awaiter::await_resume() -> std::tuple<unsigned int, ssize_t> {
@@ -148,9 +148,7 @@ auto client_socket::send_awaiter::await_ready() const -> bool { return false; }
 auto client_socket::send_awaiter::await_suspend(std::coroutine_handle<> coroutine) -> void {
   sqe_data_.coroutine = coroutine.address();
 
-  io_uring_handler::get_instance().submit_send_request(
-      raw_file_descriptor_, &sqe_data_, buffer_, length_
-  );
+  io_uring::get_instance().submit_send_request(raw_file_descriptor_, &sqe_data_, buffer_, length_);
 }
 
 auto client_socket::send_awaiter::await_resume() const -> ssize_t { return sqe_data_.cqe_res; }

@@ -26,9 +26,7 @@ auto buffer_ring::register_buffer_ring(
     buffer_list_.emplace_back(buffer_size);
   }
 
-  io_uring_handler::get_instance().setup_buffer_ring(
-      buffer_ring_.get(), buffer_list_, buffer_list_.size()
-  );
+  io_uring::get_instance().setup_buffer_ring(buffer_ring_.get(), buffer_list_, buffer_list_.size());
 }
 
 auto buffer_ring::borrow_buffer(const unsigned int buffer_id, const size_t size)
@@ -39,7 +37,7 @@ auto buffer_ring::borrow_buffer(const unsigned int buffer_id, const size_t size)
 
 auto buffer_ring::return_buffer(const unsigned int buffer_id) -> void {
   borrowed_buffer_set_[buffer_id] = false;
-  io_uring_handler::get_instance().add_buffer(
+  io_uring::get_instance().add_buffer(
       buffer_ring_.get(), buffer_list_[buffer_id], buffer_id, buffer_list_.size()
   );
 }

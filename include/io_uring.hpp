@@ -17,23 +17,21 @@ struct sqe_data {
   unsigned int cqe_flags = 0;
 };
 
-class io_uring_handler {
+class io_uring {
 public:
-  static auto get_instance() noexcept -> io_uring_handler &;
+  static auto get_instance() noexcept -> io_uring &;
 
-  io_uring_handler();
+  io_uring();
 
-  ~io_uring_handler();
+  ~io_uring();
 
-  io_uring_handler(io_uring_handler &&other) = delete;
+  io_uring(io_uring &&other) = delete;
 
-  auto operator=(io_uring_handler &&other) -> io_uring_handler & = delete;
+  auto operator=(io_uring &&other) -> io_uring & = delete;
 
-  io_uring_handler(const io_uring_handler &other) = delete;
+  io_uring(const io_uring &other) = delete;
 
-  auto operator=(const io_uring_handler &other) -> io_uring_handler & = delete;
-
-  auto get_uring() noexcept -> io_uring &;
+  auto operator=(const io_uring &other) -> io_uring & = delete;
 
   auto for_each_cqe(const std::function<void(io_uring_cqe *)> &lambda) -> void;
 
@@ -68,7 +66,7 @@ public:
   ) -> void;
 
 private:
-  io_uring io_uring_;
+  ::io_uring io_uring_;
 };
 } // namespace co_uring_http
 

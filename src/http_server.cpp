@@ -94,7 +94,7 @@ auto thread_worker::handle_client(client_socket client_socket) -> task<> {
 }
 
 auto thread_worker::event_loop() -> task<> {
-  io_uring_handler &io_uring_handler = io_uring_handler::get_instance();
+  io_uring &io_uring_handler = io_uring::get_instance();
 
   task<> accept_client_task = accept_client();
   accept_client_task.resume();

@@ -9,31 +9,29 @@
 #include "constant.hpp"
 
 namespace co_uring_http {
-io_uring_handler::io_uring_handler() {
+io_uring::io_uring() {
   if (const int result = io_uring_queue_init(IO_URING_QUEUE_SIZE, &io_uring_, 0); result != 0) {
     throw std::runtime_error("failed to invoke 'io_uring_queue_init'");
   }
 }
 
-io_uring_handler::~io_uring_handler() { io_uring_queue_exit(&io_uring_); }
+io_uring::~io_uring() { io_uring_queue_exit(&io_uring_); }
 
-auto io_uring_handler::get_instance() noexcept -> io_uring_handler & {
-  thread_local io_uring_handler instance;
+auto io_uring::get_instance() noexcept -> io_uring & {
+  thread_local io_uring instance;
   return instance;
 }
 
-auto io_uring_handler::get_uring() noexcept -> io_uring & { return io_uring_; }
-
-auto io_uring_handler::for_each_cqe(const std::function<void(io_uring_cqe *)> &lambda) -> void {
+auto io_uring::for_each_cqe(const std::function<void(io_uring_cqe *)> &lambda) -> void {
   io_uring_cqe *cqe = nullptr;
   unsigned int head = 0;
 
   io_uring_for_each_cqe(&io_uring_, head, cqe) { lambda(cqe); }
 }
 
-auto io_uring_handler::cqe_seen(io_uring_cqe *cqe) -> void { io_uring_cqe_seen(&io_uring_, cqe); }
+auto io_uring::cqe_seen(io_uring_cqe *cqe) -> void { io_uring_cqe_seen(&io_uring_, cqe); }
 
-auto io_uring_handler::submit_and_wait(const int wait_nr) -> int {
+auto io_uring::submit_and_wait(const int wait_nr) -> int {
   const int result = io_uring_submit_and_wait(&io_uring_, wait_nr);
   if (result < 0) {
     throw std::runtime_error("failed to invoke 'io_uring_submit_and_wait'");
@@ -41,7 +39,7 @@ auto io_uring_handler::submit_and_wait(const int wait_nr) -> int {
   return result;
 }
 
-auto io_uring_handler::submit_multishot_accept_request(
+auto io_uring::submit_multishot_accept_request(
     const int raw_file_descriptor, sqe_data *sqe_data, sockaddr *client_addr, socklen_t *client_len
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
@@ -49,7 +47,7 @@ auto io_uring_handler::submit_multishot_accept_request(
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
-auto io_uring_handler::submit_recv_request(
+auto io_uring::submit_recv_request(
     const int raw_file_descriptor, sqe_data *sqe_data, const size_t length
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
@@ -59,7 +57,7 @@ auto io_uring_handler::submit_recv_request(
   sqe->buf_group = BUFFER_GROUP_ID;
 }
 
-auto io_uring_handler::submit_send_request(
+auto io_uring::submit_send_request(
     const int raw_file_descriptor, sqe_data *sqe_data, const std::span<char> &buffer,
     const size_t length
 ) -> void {
@@ -68,7 +66,7 @@ auto io_uring_handler::submit_send_request(
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
-auto io_uring_handler::submit_splice_request(
+auto io_uring::submit_splice_request(
     sqe_data *sqe_data, int raw_file_descriptor_in, int raw_file_descriptor_out, size_t length
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
@@ -76,12 +74,12 @@ auto io_uring_handler::submit_splice_request(
   io_uring_sqe_set_data(sqe, sqe_data);
 }
 
-auto io_uring_handler::submit_cancel_request(sqe_data *sqe_data) -> void {
+auto io_uring::submit_cancel_request(sqe_data *sqe_data) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
   io_uring_prep_cancel(sqe, sqe_data, 0);
 }
 
-auto io_uring_handler::setup_buffer_ring(
+auto io_uring::setup_buffer_ring(
     io_uring_buf_ring *buffer_ring, std::span<std::vector<char>> buffer_list,
     const unsigned int buffer_ring_size
 ) -> void {
@@ -107,7 +105,7 @@ auto io_uring_handler::setup_buffer_ring(
   io_uring_buf_ring_advance(buffer_ring, buffer_ring_size);
 };
 
-auto io_uring_handler::add_buffer(
+auto io_uring::add_buffer(
     io_uring_buf_ring *buffer_ring, std::span<char> buffer, const unsigned int buffer_id,
     const unsigned int buffer_ring_size
 ) -> void {

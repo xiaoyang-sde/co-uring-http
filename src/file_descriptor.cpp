@@ -53,7 +53,7 @@ auto splice_awaiter::await_ready() const -> bool { return false; }
 auto splice_awaiter::await_suspend(std::coroutine_handle<> coroutine) -> void {
   sqe_data_.coroutine = coroutine.address();
 
-  io_uring_handler::get_instance().submit_splice_request(
+  io_uring::get_instance().submit_splice_request(
       &sqe_data_, raw_file_descriptor_in_, raw_file_descriptor_out_, length_
   );
 }
