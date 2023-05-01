@@ -40,13 +40,13 @@ public:
   auto submit_and_wait(int wait_nr) -> int;
 
   auto submit_multishot_accept_request(
-      int raw_file_descriptor, sqe_data *sqe_data, sockaddr *client_addr, socklen_t *client_len
+      sqe_data *sqe_data, int raw_file_descriptor, sockaddr *client_addr, socklen_t *client_len
   ) -> void;
 
-  auto submit_recv_request(int raw_file_descriptor, sqe_data *sqe_data, size_t length) -> void;
+  auto submit_recv_request(sqe_data *sqe_data, int raw_file_descriptor, size_t length) -> void;
 
   auto submit_send_request(
-      int raw_file_descriptor, sqe_data *sqe_data, const std::span<char> &buffer, size_t length
+      sqe_data *sqe_data, int raw_file_descriptor, const std::span<char> &buffer, size_t length
   ) -> void;
 
   auto submit_splice_request(

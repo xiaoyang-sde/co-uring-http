@@ -40,7 +40,7 @@ auto io_uring::submit_and_wait(const int wait_nr) -> int {
 }
 
 auto io_uring::submit_multishot_accept_request(
-    const int raw_file_descriptor, sqe_data *sqe_data, sockaddr *client_addr, socklen_t *client_len
+    sqe_data *sqe_data, const int raw_file_descriptor, sockaddr *client_addr, socklen_t *client_len
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
   io_uring_prep_multishot_accept(sqe, raw_file_descriptor, client_addr, client_len, 0);
@@ -48,7 +48,7 @@ auto io_uring::submit_multishot_accept_request(
 }
 
 auto io_uring::submit_recv_request(
-    const int raw_file_descriptor, sqe_data *sqe_data, const size_t length
+    sqe_data *sqe_data, const int raw_file_descriptor, const size_t length
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);
   io_uring_prep_recv(sqe, raw_file_descriptor, nullptr, length, 0);
@@ -58,7 +58,7 @@ auto io_uring::submit_recv_request(
 }
 
 auto io_uring::submit_send_request(
-    const int raw_file_descriptor, sqe_data *sqe_data, const std::span<char> &buffer,
+    sqe_data *sqe_data, const int raw_file_descriptor, const std::span<char> &buffer,
     const size_t length
 ) -> void {
   io_uring_sqe *sqe = io_uring_get_sqe(&io_uring_);

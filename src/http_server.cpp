@@ -31,6 +31,10 @@ thread_worker::thread_worker(const char *port) {
 
   server_socket_.bind(port);
   server_socket_.listen();
+
+  task<> accept_client_task = accept_client();
+  accept_client_task.resume();
+  accept_client_task.detach();
 }
 
 auto thread_worker::accept_client() -> task<> {
@@ -50,13 +54,13 @@ auto thread_worker::handle_client(client_socket client_socket) -> task<> {
   http_parser http_parser;
   buffer_ring &buffer_ring = buffer_ring::get_instance();
   while (true) {
-    const auto [buffer_id, buffer_size] = co_await client_socket.recv(BUFFER_SIZE);
-    if (buffer_size == 0) {
+    const auto [recv_buffer_id, recv_buffer_size] = co_await client_socket.recv(BUFFER_SIZE);
+    if (recv_buffer_size == 0) {
       break;
     }
 
-    const std::span<char> buffer = buffer_ring.borrow_buffer(buffer_id, buffer_size);
-    if (const auto parse_result = http_parser.parse_packet(buffer); parse_result.has_value()) {
+    const std::span<char> recv_buffer = buffer_ring.borrow_buffer(recv_buffer_id, recv_buffer_size);
+    if (const auto parse_result = http_parser.parse_packet(recv_buffer); parse_result.has_value()) {
       const http_request &http_request = parse_result.value();
       const std::filesystem::path file_path = std::filesystem::relative(http_request.url, "/");
 
@@ -89,20 +93,16 @@ auto thread_worker::handle_client(client_socket client_socket) -> task<> {
       }
     }
 
-    buffer_ring.return_buffer(buffer_id);
+    buffer_ring.return_buffer(recv_buffer_id);
   }
 }
 
 auto thread_worker::event_loop() -> task<> {
-  io_uring &io_uring_handler = io_uring::get_instance();
-
-  task<> accept_client_task = accept_client();
-  accept_client_task.resume();
-  accept_client_task.detach();
+  io_uring &io_uring = io_uring::get_instance();
 
   while (true) {
-    io_uring_handler.submit_and_wait(1);
-    io_uring_handler.for_each_cqe([&io_uring_handler](io_uring_cqe *cqe) {
+    io_uring.submit_and_wait(1);
+    io_uring.for_each_cqe([&io_uring](io_uring_cqe *cqe) {
       auto *sqe_data = reinterpret_cast<struct sqe_data *>(io_uring_cqe_get_data(cqe));
 
       sqe_data->cqe_res = cqe->res;
@@ -111,7 +111,7 @@ auto thread_worker::event_loop() -> task<> {
         std::coroutine_handle<>::from_address(sqe_data->coroutine).resume();
       }
 
-      io_uring_handler.cqe_seen(cqe);
+      io_uring.cqe_seen(cqe);
     });
   }
 }
