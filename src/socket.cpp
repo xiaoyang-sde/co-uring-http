@@ -75,9 +75,8 @@ auto server_socket::multishot_accept_guard::await_ready() const -> bool { return
 
 auto server_socket::multishot_accept_guard::await_suspend(std::coroutine_handle<> coroutine)
     -> void {
+  sqe_data_.coroutine = coroutine.address();
   if (initial_await_) {
-    sqe_data_.coroutine = coroutine.address();
-
     io_uring::get_instance().submit_multishot_accept_request(
         &sqe_data_, raw_file_descriptor_, reinterpret_cast<sockaddr *>(client_address_),
         client_address_size_
