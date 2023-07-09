@@ -6,7 +6,6 @@
 #include <array>
 #include <optional>
 #include <stdexcept>
-#include <type_traits>
 #include <utility>
 
 namespace co_uring_http {
