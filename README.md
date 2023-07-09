@@ -1,8 +1,8 @@
 # `co-uring-http`
 
-`co-uring-http` is a high-performance HTTP server built on C++ 20 coroutines and `io_uring`. This project serves as an exploration of the latest features of Linux kernel and is not recommended for production use. For learning purposes, `co-uring-http` re-implements general-purpose coroutine primitives (such as `task<T>`, `sync_wait<task<T>>`, etc.) instead of utilizing existing libraries.
+`co-uring-http` is a high-performance HTTP server built on C++20 coroutines and `io_uring`. This project serves as an exploration of the latest features of Linux kernel and is not recommended for production use. For learning purposes, `co-uring-http` re-implements general-purpose coroutine primitives (such as `task<T>`, `sync_wait<task<T>>`, etc.) instead of utilizing existing libraries.
 
-- Leverages C++ 20 coroutines to manage clients and handle HTTP requests, which simplifies the mental overhead of writing asynchronous code.
+- Leverages C++20 coroutines to manage clients and handle HTTP requests, which simplifies the mental overhead of writing asynchronous code.
 - Leverages `io_uring` for handling async I/O operations, such as `accept()`, `send()`, `recv()`, and `splice()`, reducing the number of system calls.
 - Leverages ring-mapped buffers to minimize buffer allocation costs and reduce data transfer between user and kernel space.
 - Leverages multishot accept in `io_uring` to decrease the overhead of issuing `accept()` requests.
@@ -71,48 +71,67 @@ auto thread_worker::handle_client(client_socket client_socket) -> task<> {
 
 ## Performance
 
-The benchmark is performed with the [`hey` benchmark tool](https://github.com/rakyll/hey), which sends 100 batches of requests, with each batch containing 10,000 concurrent clients requesting a file of 1024 bytes in size. `co-uring-http` serves 88,160 requests per second and handles 99% of requests within 0.5 seconds.
+The benchmark is performed with the [`hey` benchmark tool](https://github.com/rakyll/hey), which sends 200 batches of requests, with each batch containing 5,000 concurrent clients requesting a file of 1024 bytes in size. `co-uring-http` serves 57,012 requests per second and handles 99% of requests within 0.2 seconds.
 
-The benchmark is performed on WSL with Linux kernel version `6.3.0-microsoft-standard-WSL2`, which is based on Intel i5-12400 with 12 logical processors, 16 GB memories, and Samsung PM9A1 256 GB (OEM version of Samsung 980 Pro).
+The benchmark is performed on UTM (https://mac.getutm.app) running on MacBook Air (M1, 2020) with Linux kernel version `6.4.2`. The virtual machine has 4 cores and 8 GB memories. The program is compiled with `g++` 13.0.1.
 
 ```console
-./hey -n 1000000 -c 10000 http://127.0.0.1:8080/1k
+./hey -n 1000000 -c 5000 http://127.0.0.1:8080/1k
 
 Summary:
-  Total:        11.3429 secs
-  Slowest:      1.2630 secs
-  Fastest:      0.0000 secs
-  Average:      0.0976 secs
-  Requests/sec: 88160.9738
+  Total:        17.5400 secs
+  Slowest:      0.3872 secs
+  Fastest:      0.0001 secs
+  Average:      0.0824 secs
+  Requests/sec: 57012.6903
 
   Total data:   1024000000 bytes
   Size/request: 1024 bytes
 
 Response time histogram:
   0.000 [1]     |
-  0.126 [701093]        |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
-  0.253 [259407]        |■■■■■■■■■■■■■■■
-  0.379 [24843] |■
-  0.505 [4652]  |
-  0.632 [678]   |
-  0.758 [1933]  |
-  0.884 [1715]  |
-  1.010 [489]   |
-  1.137 [5111]  |
-  1.263 [78]    |
+  0.039 [18601] |■
+  0.077 [516164]        |■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.116 [344028]        |■■■■■■■■■■■■■■■■■■■■■■■■■■■
+  0.155 [89199] |■■■■■■■
+  0.194 [22404] |■■
+  0.232 [3841]  |
+  0.271 [3404]  |
+  0.310 [1907]  |
+  0.348 [221]   |
+  0.387 [230]   |
+
+
+Latency distribution:
+  10% in 0.0519 secs
+  25% in 0.0611 secs
+  50% in 0.0752 secs
+  75% in 0.0973 secs
+  90% in 0.1213 secs
+  95% in 0.1392 secs
+  99% in 0.1922 secs
+
+Details (average, fastest, slowest):
+  DNS+dialup:   0.0002 secs, 0.0001 secs, 0.3872 secs
+  DNS-lookup:   0.0000 secs, 0.0000 secs, 0.0000 secs
+  req write:    0.0001 secs, 0.0000 secs, 0.0966 secs
+  resp wait:    0.0413 secs, 0.0000 secs, 0.2908 secs
+  resp read:    0.0397 secs, 0.0000 secs, 0.3499 secs
+
+Status code distribution:
+  [200] 1000000 responses
+
 ```
 
 ## Environment
 
-- Linux Kernel 6.3 or newer
-- CMake 3.10 or newer
-- Clang 14 or newer
-- libstdc++ 11.3 or newer (bundled with GCC)
-- [liburing](https://github.com/axboe/liburing) 2.3 or newer
+- Linux Kernel >= 5.19
+- GCC >= 13 or Clang >= 14
+  - Because `libc++` lacks support for certain C++20 features such as `jthread`, `co-uring-http` should link with GCC's `libstdc++`.
+  - There's a bug in GCC <= 12 that introduces unexpected copies in the `co_await` expression, which will cause a segmentation fault in `co-uring-http`.
+- [liburing](https://github.com/axboe/liburing) >= 2.3
 
-`co-uring-http` uses Clang to take advantage of the LLVM toolchain (`clangd`, `lldb`, `clang-format`, etc.). However, since `libc++` lacks support for certain C++ 20 features such as `jthread`, the project links with GCC's `libstdc++`. The latest Linux kernel is required because the project leverages latest features of `io_uring`.
-
-The `.devcontainer/Dockerfile` provides a container image based on `ubuntu:lunar` with these dependencies installed. Please note that the Linux virtual machine of Docker on macOS is based on Linux kernel 5.15, which doesn't meet the requirement of `co-uring-http`.
+The `.devcontainer/Dockerfile` provides a container image based on `ubuntu:lunar` with the required dependencies installed. Please note that the virtual machine of Docker on macOS is based on Linux kernel 5.15, which doesn't meet the requirement of `co-uring-http`.
 
 ## Build
 
@@ -142,21 +161,21 @@ sudo apt install git bc build-essential flex bison libssl-dev libelf-dev dwarves
 - Download the latest kernel source code:
 
 ```console
-wget https://github.com/torvalds/linux/archive/refs/tags/v6.3.tar.gz -O v6.3.tar.gz
-tar -xf v6.3.tar.gz
+wget https://github.com/torvalds/linux/archive/refs/tags/v6.4.2.tar.gz -O v6.4.2.tar.gz
+tar -xf v6.4.2.tar.gz
 ```
 
 - Download the build configuration file for WSL:
 
 ```console
 wget https://raw.githubusercontent.com/microsoft/WSL2-Linux-Kernel/linux-msft-wsl-6.1.y/Microsoft/config-wsl
-cp config-wsl linux-6.3/arch/x86/configs/wsl_defconfig
+cp config-wsl linux-6.4.2/arch/x86/configs/wsl_defconfig
 ```
 
 - Build the kernel:
 
 ```console
-cd linux-6.3
+cd linux-6.4.2
 make KCONFIG_CONFIG=arch/x86/configs/wsl_defconfig -j$(nproc)
 ```
 
