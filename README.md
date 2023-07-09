@@ -73,7 +73,7 @@ auto thread_worker::handle_client(client_socket client_socket) -> task<> {
 
 The benchmark is performed with the [`hey` benchmark tool](https://github.com/rakyll/hey), which sends 200 batches of requests, with each batch containing 5,000 concurrent clients requesting a file of 1024 bytes in size. `co-uring-http` serves 57,012 requests per second and handles 99% of requests within 0.2 seconds.
 
-The benchmark is performed on UTM (https://mac.getutm.app) running on MacBook Air (M1, 2020) with Linux kernel version `6.4.2`. The virtual machine has 4 cores and 8 GB memories. The program is compiled with `g++` 13.0.1.
+The benchmark is performed on [UTM](https://mac.getutm.app) running on MacBook Air (M1, 2020) with Linux kernel version `6.4.2`. The virtual machine has 4 cores and 8 GB memories. The program is compiled with GCC 13 and optimization level `O3`.
 
 ```console
 ./hey -n 1000000 -c 5000 http://127.0.0.1:8080/1k
