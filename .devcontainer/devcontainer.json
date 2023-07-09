@@ -1,7 +1,20 @@
 {
-	"name": "C++",
+	"name": "co-uring-http",
 	"build": {
 		"dockerfile": "Dockerfile"
 	},
-	"runArgs": ["--name", "co-uring-http"]
+	"runArgs": [
+		"--name",
+		"co-uring-http"
+	],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+				"llvm-vs-code-extensions.vscode-clangd",
+				"ms-vscode.cmake-tools",
+				"twxs.cmake",
+				"vadimcn.vscode-lldb"
+			]
+		}
+	}
 }
