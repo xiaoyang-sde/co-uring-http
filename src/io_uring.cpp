@@ -1,6 +1,7 @@
 #include "io_uring.hpp"
 
 #include <liburing.h>
+#include <liburing/barrier.h>
 #include <liburing/io_uring.h>
 #include <sys/types.h>
 
@@ -22,14 +23,29 @@ auto io_uring::get_instance() noexcept -> io_uring & {
   return instance;
 }
 
-auto io_uring::for_each_cqe(const std::function<void(io_uring_cqe *)> &lambda) -> void {
-  io_uring_cqe *cqe = nullptr;
-  unsigned int head = 0;
+io_uring::cqe_iterator::cqe_iterator(const ::io_uring *io_uring, const unsigned int head)
+    : io_uring_{io_uring}, head_{head} {}
 
-  io_uring_for_each_cqe(&io_uring_, head, cqe) { lambda(cqe); }
+auto io_uring::cqe_iterator::operator++() noexcept -> cqe_iterator & {
+  ++head_;
+  return *this;
 }
 
-auto io_uring::cqe_seen(io_uring_cqe *cqe) -> void { io_uring_cqe_seen(&io_uring_, cqe); }
+auto io_uring::cqe_iterator::operator*() const noexcept -> io_uring_cqe * {
+  return &io_uring_->cq.cqes[io_uring_cqe_index(io_uring_, head_, (io_uring_)->cq.ring_mask)];
+}
+
+auto io_uring::cqe_iterator::operator!=(const cqe_iterator &other) const noexcept -> bool {
+  return head_ != other.head_;
+}
+
+auto io_uring::begin() -> cqe_iterator { return cqe_iterator{&io_uring_, *io_uring_.cq.khead}; }
+
+auto io_uring::end() -> cqe_iterator {
+  return cqe_iterator{&io_uring_, io_uring_smp_load_acquire(io_uring_.cq.ktail)};
+}
+
+auto io_uring::cqe_seen(io_uring_cqe *const cqe) -> void { io_uring_cqe_seen(&io_uring_, cqe); }
 
 auto io_uring::submit_and_wait(const int wait_nr) -> int {
   const int result = io_uring_submit_and_wait(&io_uring_, wait_nr);

@@ -7,7 +7,6 @@
 #include <cstddef>
 #include <cstdint>
 #include <filesystem>
-#include <functional>
 #include <optional>
 #include <span>
 #include <stdexcept>
@@ -102,24 +101,24 @@ auto thread_worker::event_loop() -> task<> {
 
   while (true) {
     io_uring.submit_and_wait(1);
-    io_uring.for_each_cqe([&io_uring](io_uring_cqe *cqe) {
+    for (io_uring_cqe *const cqe : io_uring) {
       auto *sqe_data = reinterpret_cast<struct sqe_data *>(io_uring_cqe_get_data(cqe));
-
       sqe_data->cqe_res = cqe->res;
       sqe_data->cqe_flags = cqe->flags;
-      if (sqe_data->coroutine != nullptr) {
-        std::coroutine_handle<>::from_address(sqe_data->coroutine).resume();
-      }
-
+      void *const coroutine_address = sqe_data->coroutine;
       io_uring.cqe_seen(cqe);
-    });
+
+      if (coroutine_address != nullptr) {
+        std::coroutine_handle<>::from_address(coroutine_address).resume();
+      }
+    };
   }
 }
 
 http_server::http_server(const size_t thread_count) : thread_pool_{thread_count} {}
 
 auto http_server::listen(const char *port) -> void {
-  const std::function<task<>()> construct_task = [&]() -> task<> {
+  const auto construct_task = [&]() -> task<> {
     co_await thread_pool_.schedule();
     co_await thread_worker(port).event_loop();
   };

@@ -4,7 +4,6 @@
 #include <liburing.h>
 #include <sys/socket.h>
 
-#include <functional>
 #include <span>
 #include <vector>
 struct io_uring_buf_ring;
@@ -33,9 +32,28 @@ public:
 
   auto operator=(const io_uring &other) -> io_uring & = delete;
 
-  auto for_each_cqe(const std::function<void(io_uring_cqe *)> &lambda) -> void;
+  class cqe_iterator {
+  public:
+    explicit cqe_iterator(const ::io_uring *io_uring, const unsigned int head);
 
-  auto cqe_seen(io_uring_cqe *cqe) -> void;
+    cqe_iterator(const cqe_iterator &) = default;
+
+    auto operator++() noexcept -> cqe_iterator &;
+
+    auto operator!=(const cqe_iterator &right) const noexcept -> bool;
+
+    auto operator*() const noexcept -> io_uring_cqe *;
+
+  private:
+    const ::io_uring *io_uring_;
+    unsigned int head_;
+  };
+
+  auto begin() -> cqe_iterator;
+
+  auto end() -> cqe_iterator;
+
+  auto cqe_seen(io_uring_cqe *const cqe) -> void;
 
   auto submit_and_wait(int wait_nr) -> int;
 
