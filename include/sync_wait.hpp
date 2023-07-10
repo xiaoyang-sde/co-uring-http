@@ -2,6 +2,8 @@
 #define SYNC_WAIT_HPP
 
 #include <algorithm>
+#include <atomic>
+#include <optional>
 #include <vector>
 
 #include "task.hpp"
@@ -27,7 +29,9 @@ public:
     return coroutine_.promise().get_return_value();
   }
 
-  auto wait() const noexcept -> void { coroutine_.promise().get_atomic_flag().wait(false); }
+  auto wait() const noexcept -> void {
+    coroutine_.promise().get_atomic_flag().wait(false, std::memory_order_acquire);
+  }
 
 private:
   std::coroutine_handle<sync_wait_task_promise<T>> coroutine_;
@@ -46,7 +50,7 @@ public:
     auto await_suspend(std::coroutine_handle<sync_wait_task_promise<T>> coroutine) const noexcept
         -> void {
       std::atomic_flag &atomic_flag = coroutine.promise().get_atomic_flag();
-      atomic_flag.test_and_set();
+      atomic_flag.test_and_set(std::memory_order_release);
       atomic_flag.notify_all();
     }
   };
@@ -67,14 +71,18 @@ public:
     return sync_wait_task<T>{std::coroutine_handle<sync_wait_task_promise<T>>::from_promise(*this)};
   }
 
-  auto return_value(T &&return_value) noexcept -> void {
-    return_value_ = std::forward<T>(return_value);
+  template <typename U>
+    requires std::convertible_to<U &&, T>
+  auto return_value(U &&return_value) noexcept(std::is_nothrow_constructible_v<T, U &&>) -> void {
+    return_value_.emplace(std::forward<U>(return_value));
   }
 
-  [[nodiscard]] auto get_return_value() const noexcept -> T { return return_value_; }
+  [[nodiscard]] auto get_return_value() & noexcept -> T & { return *return_value_; }
+
+  [[nodiscard]] auto get_return_value() && noexcept -> T && { return std::move(*return_value_); }
 
 private:
-  T return_value_;
+  std::optional<T> return_value_;
 };
 
 template <> class sync_wait_task_promise<void> final : public sync_wait_task_promise_base<void> {
