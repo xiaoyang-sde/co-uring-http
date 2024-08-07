@@ -1,5 +1,8 @@
-# CMake
+# C++ Toolchain
+.cache
 build
+
+# Visual Studio Code
 .vscode
 
 # macOS

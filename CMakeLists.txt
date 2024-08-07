@@ -1,24 +1,70 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.30)
+set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "0e5b6991-d74f-4b3d-a41c-cf096e0b2508")
+set(CMAKE_CXX_MODULE_STD TRUE)
+project(co_uring_http LANGUAGES CXX)
+set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
-project(co_uring_http)
-set(CMAKE_CXX_STANDARD 23)
-set(CMAKE_CXX_STANDARD_REQUIRED True)
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+add_library(${CMAKE_PROJECT_NAME})
+target_sources(
+  ${CMAKE_PROJECT_NAME}
+  PUBLIC
+  FILE_SET CXX_MODULES FILES
+  src/common/deferred_initialization.cppm
+  src/common/lib.cppm
+  src/coroutine/lib.cppm
+  src/coroutine/spawn.cppm
+  src/coroutine/task.cppm
+  src/coroutine/thread_pool.cppm
+  src/coroutine/trait.cppm
+  src/coroutine/wait.cppm
+  src/http/lib.cppm
+  src/http/message.cppm
+  src/http/server.cppm
+  src/io/buf_ring.cppm
+  src/io/constant.cppm
+  src/io/error.cppm
+  src/io/file.cppm
+  src/io/io_uring.cppm
+  src/io/lib.cppm
+  src/io/socket.cppm
+  src/lib.cppm
+)
+target_compile_features(
+  ${CMAKE_PROJECT_NAME}
+  PRIVATE cxx_std_23
+)
+target_compile_options(
+  ${CMAKE_PROJECT_NAME}
+  PRIVATE -pedantic
+  PRIVATE -Wall
+  PRIVATE -Wextra
+)
+target_compile_definitions(
+  ${CMAKE_PROJECT_NAME}
+  PRIVATE __cpp_concepts=202002L
+)
 
-find_program(IWYU_PROGRAM NAMES include-what-you-use)
-if(IWYU_PROGRAM)
-  set(CMAKE_CXX_INCLUDE_WHAT_YOU_USE ${IWYU_PROGRAM})
-endif()
-
-file(GLOB SOURCE_FILE src/*.cpp)
-add_executable(co_uring_http ${SOURCE_FILE})
-
-target_include_directories(co_uring_http PRIVATE include)
-target_compile_options(co_uring_http PRIVATE -Wall -Wextra)
-
-if(CMAKE_BUILD_TYPE STREQUAL Debug)
-  target_link_libraries(co_uring_http PRIVATE asan ubsan uring)
-  target_compile_options(co_uring_http PRIVATE -fno-omit-frame-pointer -fsanitize=address -fsanitize=undefined)
-else()
-  target_link_libraries(co_uring_http PRIVATE uring)
-endif()
+add_executable(main)
+target_sources(
+  main
+  PRIVATE src/main.cpp
+)
+target_link_libraries(
+  main
+  PRIVATE ${CMAKE_PROJECT_NAME}
+  PRIVATE uring
+)
+target_compile_features(
+  main
+  PRIVATE cxx_std_23
+)
+target_compile_options(
+  main
+  PRIVATE -pedantic
+  PRIVATE -Wall
+  PRIVATE -Wextra
+)
+target_compile_definitions(
+  main
+  PRIVATE __cpp_concepts=202002L
+)
