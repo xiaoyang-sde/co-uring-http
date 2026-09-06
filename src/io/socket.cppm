@@ -210,6 +210,8 @@ bind() noexcept -> std::expected<socket_server, std::uint_least16_t> {
     freeaddrinfo(socket_address);
     return socket_server{raw_fd};
   }
+
+  return std::unexpected{static_cast<std::uint_least16_t>(EADDRNOTAVAIL)};
 }
 
 } // namespace co_uring_http

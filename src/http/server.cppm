@@ -59,21 +59,21 @@ public:
                                              std::format("{}", file_size));
 
           const std::string send_buf = std::format("{}", http_response);
-          unwrap(co_await socket_client.send(
+          static_cast<void>(unwrap(co_await socket_client.send(
               {reinterpret_cast<const std::uint_least8_t *>(send_buf.data()),
-               send_buf.size()}));
+               send_buf.size()})));
 
           const file f = unwrap(open(file_path.c_str()));
-          unwrap(co_await splice(f, socket_client, file_size));
+          static_cast<void>(unwrap(co_await splice(f, socket_client, file_size)));
         } else {
           http_response.status = "404";
           http_response.status_text = "Not Found";
           http_response.headers.emplace_back("content-length", "0");
 
           const std::string send_buf = std::format("{}", http_response);
-          unwrap(co_await socket_client.send(
+          static_cast<void>(unwrap(co_await socket_client.send(
               {reinterpret_cast<const std::uint_least8_t *>(send_buf.data()),
-               send_buf.size()}));
+               send_buf.size()})));
         }
       }
 

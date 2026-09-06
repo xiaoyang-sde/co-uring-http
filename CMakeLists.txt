@@ -1,6 +1,29 @@
 cmake_minimum_required(VERSION 3.30)
-set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD "0e5b6991-d74f-4b3d-a41c-cf096e0b2508")
+if(CMAKE_VERSION VERSION_LESS 3.31.8)
+  set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+      "0e5b6991-d74f-4b3d-a41c-cf096e0b2508")
+elseif(CMAKE_VERSION VERSION_LESS 4.0.0)
+  set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+      "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+elseif(CMAKE_VERSION VERSION_LESS 4.0.3)
+  set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+      "a9e1cf81-9932-4810-974b-6eccaf14e457")
+elseif(CMAKE_VERSION VERSION_LESS 4.3.0)
+  set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+      "d0edc3af-4c50-42ea-a356-e2862fe7a444")
+elseif(CMAKE_VERSION VERSION_LESS 4.4.0)
+  set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+      "451f2fe2-a8a2-47c3-bc32-94786d8fc91b")
+elseif(CMAKE_VERSION VERSION_LESS 4.5.0)
+  set(CMAKE_EXPERIMENTAL_CXX_IMPORT_STD
+      "f35a9ac6-8463-4d38-8eec-5d6008153e7d")
+else()
+  message(FATAL_ERROR
+    "Unsupported CMake version for CMAKE_EXPERIMENTAL_CXX_IMPORT_STD: ${CMAKE_VERSION}")
+endif()
 set(CMAKE_CXX_MODULE_STD TRUE)
+set(CMAKE_CXX_FLAGS
+    "${CMAKE_CXX_FLAGS} -Wno-unused-command-line-argument -Wno-reserved-module-identifier")
 project(co_uring_http LANGUAGES CXX)
 set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
 
@@ -38,12 +61,8 @@ target_compile_options(
   PRIVATE -pedantic
   PRIVATE -Wall
   PRIVATE -Wextra
+  PRIVATE -Wno-unused-command-line-argument
 )
-target_compile_definitions(
-  ${CMAKE_PROJECT_NAME}
-  PRIVATE __cpp_concepts=202002L
-)
-
 add_executable(main)
 target_sources(
   main
@@ -63,8 +82,5 @@ target_compile_options(
   PRIVATE -pedantic
   PRIVATE -Wall
   PRIVATE -Wextra
-)
-target_compile_definitions(
-  main
-  PRIVATE __cpp_concepts=202002L
+  PRIVATE -Wno-unused-command-line-argument
 )

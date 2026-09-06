@@ -37,7 +37,7 @@ public:
 
   auto event_loop() noexcept -> void {
     while (true) {
-      unwrap(submit_and_wait(1));
+      static_cast<void>(unwrap(submit_and_wait(1)));
 
       std::uint_least32_t head = 0;
       io_uring_cqe *cqe = nullptr;
@@ -112,6 +112,9 @@ public:
         .ring_addr = reinterpret_cast<std::uint_least64_t>(buf_ring),
         .ring_entries = static_cast<std::uint_least32_t>(BUF_RING_SIZE),
         .bgid = BUF_GROUP_ID,
+        .flags = 0,
+        .min_left = 0,
+        .resv = {0, 0, 0},
     };
 
     return decode_void(
