@@ -19,7 +19,7 @@ The project showcases modern C++ features from C++20 and C++23. (Most non-trivia
 Generate the build configuration with CMake:
 
 ```console
-cmake -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_-DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_C_COMPILER:FILEPATH=$(which clang) -DCMAKE_CXX_COMPILER:FILEPATH=$(which clang++) -B build -G Ninja
+cmake -DCMAKE_CXX_FLAGS=-stdlib=libc++ -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_CXX_COMPILER:FILEPATH=$(which clang++) -B build -G Ninja
 ```
 
 Build and run, which will listen on `localhost:8080` and serves static files:
